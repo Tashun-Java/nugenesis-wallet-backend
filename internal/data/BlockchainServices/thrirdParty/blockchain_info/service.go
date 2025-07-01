@@ -33,19 +33,24 @@ func NewService() *Service {
 // https://www.blockchain.com/explorer/api/blockchain_api
 func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockchain_info_models.AddressInfo, error) {
 	url := fmt.Sprintf("%s/rawaddr/%s?limit=%d&offset=%d", s.baseURL, address, limit, offset)
-	log.Println("Here1")
 	resp, err := s.client.Get(url)
+	log.Println("Here1")
+	log.Println(resp)
+	log.Println(err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get address info: %w", err)
 	}
 	defer resp.Body.Close()
 	log.Println("Here2")
+	log.Println(err)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
+	log.Println(body)
+	log.Println(err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
