@@ -35,7 +35,7 @@ func NewService() *Service {
 func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockchain_info_models.AddressInfo, error) {
 	url := fmt.Sprintf("%s/rawaddr/%s?limit=%d&offset=%d", s.baseURL, address, limit, offset)
 
-	for retries := 0; retries < 5; retries++ {
+	for retries := 0; retries < 1; retries++ {
 		resp, err := s.client.Get(url)
 		log.Println("Here1")
 		log.Println(resp)
@@ -47,7 +47,7 @@ func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockc
 
 		// Handle 429 Too Many Requests
 		if resp.StatusCode == http.StatusTooManyRequests {
-			retryAfter := 15 * time.Second
+			retryAfter := 60 * time.Second
 			if val := resp.Header.Get("Retry-After"); val != "" {
 				if secs, err := strconv.Atoi(val); err == nil {
 					retryAfter = time.Duration(secs) * time.Second
