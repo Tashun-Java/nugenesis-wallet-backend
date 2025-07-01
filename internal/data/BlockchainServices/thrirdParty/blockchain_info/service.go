@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/blockchain_info/blockchain_info_models"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -32,12 +33,13 @@ func NewService() *Service {
 // https://www.blockchain.com/explorer/api/blockchain_api
 func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockchain_info_models.AddressInfo, error) {
 	url := fmt.Sprintf("%s/rawaddr/%s?limit=%d&offset=%d", s.baseURL, address, limit, offset)
-
+	log.Println("Here1")
 	resp, err := s.client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get address info: %w", err)
 	}
 	defer resp.Body.Close()
+	log.Println("Here2")
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
@@ -47,11 +49,13 @@ func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockc
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
+	log.Println("Here3")
 
 	var addressInfo blockchain_info_models.AddressInfo
 	if err := json.Unmarshal(body, &addressInfo); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
+	log.Println("Here4")
 
 	return &addressInfo, nil
 }

@@ -3,6 +3,7 @@ package blockchaininfo
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -38,10 +39,14 @@ func (c *Controller) GetAddressInfo(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid offset parameter"})
 		return
 	}
+	log.Printf("[START] %s %s?%s", address, limit, limit)
 
 	addressInfo, err := c.service.GetAddressInfo(address, limit, offset)
+
 	var mappedTransactions []models.Transaction
+	log.Println(addressInfo)
 	if addressInfo != nil {
+		log.Printf("[START] %d ", len(addressInfo.Txs))
 		for _, tx := range addressInfo.Txs {
 			mappedTx := MapTxToTransaction(tx, address, addressInfo.Hash160)
 			mappedTransactions = append(mappedTransactions, mappedTx)
