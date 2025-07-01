@@ -1,0 +1,73 @@
+package main
+
+import (
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/auth"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/middleware"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/user"
+	"github.com/tashunc/nugenesis-wallet-backend/pkg/logger"
+	"github.com/tashunc/nugenesis-wallet-backend/services"
+	"net/http"
+	"time"
+)
+
+func main() {
+	router := gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "X-Nonce", "x-nonce-timestamp", "x-nonce-hash"}
+	router.Use(cors.New(config))
+	router.Use(logger.GinLogger())
+
+	nonceStore := services.NewNonceStore()
+	// API group
+	api := router.Group("/api")
+	{
+		user.RegisterRoutes(api)
+		data.RegisterRoutes(api)
+		auth.RegisterRoutes(api)
+		middleware.RegisterRoutes(api, nonceStore)
+
+	}
+	router.GET("/api/nonce/info", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"nonce_length_min": 32,
+			"ttl_seconds":      300, // 5 minutes
+			"hash_algorithm":   "SHA256",
+			"format":           "nonce + timestamp -> SHA256",
+		})
+	})
+
+	router.POST("/api/nonce/register", func(c *gin.Context) {
+		var request struct {
+			Nonce     string `json:"nonce" binding:"required"`
+			Timestamp int64  `json:"timestamp" binding:"required"`
+		}
+
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+			return
+		}
+
+		timestamp := time.Unix(request.Timestamp, 0)
+
+		// Check if timestamp is reasonable (not too old, not too far in future)
+		now := time.Now()
+		if timestamp.Before(now.Add(-1*time.Minute)) || timestamp.After(now.Add(1*time.Minute)) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid timestamp"})
+			return
+		}
+
+		hash := nonceStore.RegisterNonce(request.Nonce, timestamp)
+
+		c.JSON(http.StatusOK, gin.H{
+			"hash":      hash,
+			"timestamp": request.Timestamp,
+			"expires":   timestamp.Add(5 * time.Minute).Unix(),
+		})
+	})
+
+	router.Run(":8080")
+}
