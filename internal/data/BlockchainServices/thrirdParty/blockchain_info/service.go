@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,36 +34,57 @@ func NewService() *Service {
 // https://www.blockchain.com/explorer/api/blockchain_api
 func (s *Service) GetAddressInfo(address string, limit int, offset int) (*blockchain_info_models.AddressInfo, error) {
 	url := fmt.Sprintf("%s/rawaddr/%s?limit=%d&offset=%d", s.baseURL, address, limit, offset)
-	resp, err := s.client.Get(url)
-	log.Println("Here1")
-	log.Println(resp)
-	log.Println(err)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get address info: %w", err)
-	}
-	defer resp.Body.Close()
-	log.Println("Here2")
-	log.Println(err)
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d", resp.StatusCode)
+	for retries := 0; retries < 5; retries++ {
+		resp, err := s.client.Get(url)
+		log.Println("Here1")
+		log.Println(resp)
+		log.Println(err)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to get address info: %w", err)
+		}
+
+		// Handle 429 Too Many Requests
+		if resp.StatusCode == http.StatusTooManyRequests {
+			retryAfter := 15 * time.Second
+			if val := resp.Header.Get("Retry-After"); val != "" {
+				if secs, err := strconv.Atoi(val); err == nil {
+					retryAfter = time.Duration(secs) * time.Second
+				}
+			}
+			log.Printf("Received 429 Too Many Requests. Retrying after %v...", retryAfter)
+			resp.Body.Close()
+			time.Sleep(retryAfter)
+			continue
+		}
+
+		defer resp.Body.Close()
+		log.Println("Here2")
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		log.Println(string(body))
+		log.Println(err)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read response body: %w", err)
+		}
+		log.Println("Here3")
+
+		var addressInfo blockchain_info_models.AddressInfo
+		if err := json.Unmarshal(body, &addressInfo); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		}
+		log.Println("Here4")
+
+		return &addressInfo, nil
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	log.Println(body)
-	log.Println(err)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-	log.Println("Here3")
-
-	var addressInfo blockchain_info_models.AddressInfo
-	if err := json.Unmarshal(body, &addressInfo); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-	log.Println("Here4")
-
-	return &addressInfo, nil
+	return nil, fmt.Errorf("too many retries due to rate limiting")
 }
 
 func (s *Service) GetMultiAddress(addresses []string, limit int, offset int) (*blockchain_info_models.MultiAddress, error) {
