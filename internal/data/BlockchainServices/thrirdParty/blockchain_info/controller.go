@@ -41,9 +41,14 @@ func (c *Controller) GetAddressInfo(ctx *gin.Context) {
 
 	addressInfo, err := c.service.GetAddressInfo(address, limit, offset)
 	var mappedTransactions []models.Transaction
-	for _, tx := range addressInfo.Txs {
-		mappedTx := MapTxToTransaction(tx, address, addressInfo.Hash160)
-		mappedTransactions = append(mappedTransactions, mappedTx)
+	if addressInfo != nil {
+		for _, tx := range addressInfo.Txs {
+			mappedTx := MapTxToTransaction(tx, address, addressInfo.Hash160)
+			mappedTransactions = append(mappedTransactions, mappedTx)
+		}
+	} else {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	//reponse := utils.MapTxToTransaction(addressInfo, address, addressInfo.Hash160)
