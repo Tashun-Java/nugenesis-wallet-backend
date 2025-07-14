@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -13,7 +14,7 @@ type Controller struct {
 
 func NewController() *Controller {
 	return &Controller{
-		service: NewService("CX7CYFYEH2CBM1NP1ZTUIEBB4BZCCFAR2B"),
+		service: NewService(os.Getenv("ETHERSCAN_API_KEY")),
 	}
 }
 

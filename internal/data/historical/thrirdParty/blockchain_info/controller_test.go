@@ -4,7 +4,7 @@ package blockchaininfo
 //import (
 //	"bytes"
 //	"encoding/json"
-//	"github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/blockchain_info/blockchain_info_models"
+//	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/thrirdParty/blockchain_info/blockchain_info_models"
 //	"net/http"
 //	"net/http/httptest"
 //	"testing"

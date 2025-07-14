@@ -3,7 +3,7 @@ package blockchaininfo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/blockchain_info/blockchain_info_models"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info/blockchain_info_models"
 	"io"
 	"log"
 	"net/http"

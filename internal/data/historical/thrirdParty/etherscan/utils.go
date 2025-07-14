@@ -2,7 +2,7 @@ package etherscan
 
 import (
 	"fmt"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/etherscan/etherscan_models"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/etherscan/etherscan_models"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
 	"strconv"
 	"time"
