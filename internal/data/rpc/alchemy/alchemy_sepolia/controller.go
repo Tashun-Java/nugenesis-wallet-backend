@@ -79,13 +79,11 @@ func (c *Controller) GetEstimateGas(ctx *gin.Context) {
 	}
 
 	transactionObject := alchemy_models.TransactionObject{
-		From:     request.From,
-		To:       request.To,
-		Gas:      request.Gas,
-		GasPrice: request.GasPrice,
-		Value:    request.Value,
-		Data:     request.Data,
-		Nonce:    request.Nonce,
+		From:  request.From,
+		To:    request.To,
+		Value: request.Value,
+		Data:  request.Data,
+		Nonce: request.Nonce,
 	}
 
 	response, err := c.service.GetEstimateGas(transactionObject)

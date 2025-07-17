@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_models"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -50,6 +51,8 @@ func (s *Service) PostSendRawTransaction(signedTxs []string) (*alchemy_models.Se
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	log.Printf("Alchemy API response: %s", string(respBody))
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("alchemy API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
@@ -87,6 +90,8 @@ func (s *Service) GetEstimateGas(transactionObject alchemy_models.TransactionObj
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
+
+	log.Printf("Alchemy API response: %s", string(respBody))
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("alchemy API returned status %d: %s", resp.StatusCode, string(respBody))
@@ -126,13 +131,15 @@ func (s *Service) GetTransactionCount(address string, blockParameter string) (*a
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	log.Printf("Alchemy API response: %s", string(respBody))
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("alchemy API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	var response alchemy_models.GetTransactionCountResponse
 	if err := json.Unmarshal(respBody, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+		return nil, fmt.Errorf("failed to  unmarshal response: %w", err)
 	}
 
 	return &response, nil

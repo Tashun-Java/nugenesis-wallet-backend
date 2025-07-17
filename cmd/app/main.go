@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/config"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/auth"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/middleware"
@@ -14,11 +15,13 @@ import (
 )
 
 func main() {
+	cfg := config.LoadConfig()
+
 	router := gin.Default()
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "X-Nonce", "x-nonce-timestamp", "x-nonce-hash"}
-	router.Use(cors.New(config))
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "X-Nonce", "x-nonce-timestamp", "x-nonce-hash"}
+	router.Use(cors.New(corsConfig))
 	router.Use(logger.GinLogger())
 
 	nonceStore := services.NewNonceStore()
@@ -69,5 +72,5 @@ func main() {
 		})
 	})
 
-	router.Run(":8080")
+	router.Run(":" + cfg.Port)
 }

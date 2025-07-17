@@ -2,9 +2,10 @@ package data
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/etherscan"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/etherscan"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_sepolia"
 )
-import "github.com/tashunc/nugenesis-wallet-backend/internal/data/BlockchainServices/thrirdParty/blockchain_info"
 
 func RegisterRoutes(rg *gin.RouterGroup) {
 	productGroup := rg.Group("/data")
@@ -20,5 +21,14 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 	{
 		c := etherscan.NewController()
 		ethGroup.GET("/address/:address", c.GetAddressInfo)
+	}
+	//ethAlchemyGroup := productGroup.Group("/eth")
+	{
+		c := alchemy_sepolia.NewController()
+		ethGroup.POST("/send", c.SendRawTransaction)
+		ethGroup.POST("/feeEstimate", c.GetEstimateGas)
+		ethGroup.POST("/fees", c.GetEstimateGas)
+		ethGroup.POST("/getCount", c.GetTransactionCount)
+
 	}
 }
