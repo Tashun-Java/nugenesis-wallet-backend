@@ -163,3 +163,33 @@ func (c *Controller) GetTransactionCount(ctx *gin.Context) {
 		Message:          "Transaction count retrieved successfully",
 	})
 }
+
+func (c *Controller) GetGasPrice(ctx *gin.Context) {
+	response, err := c.service.GetGasPrice()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, models.GetGasPriceControllerResponse{
+			Success: false,
+			Message: "Failed to get gas price",
+			Error: &models.SendRawTransactionError{
+				Code:    500,
+				Message: err.Error(),
+			},
+		})
+		return
+	}
+
+	if response.Error != nil {
+		ctx.JSON(http.StatusBadRequest, models.GetGasPriceControllerResponse{
+			Success: false,
+			Message: "Gas price retrieval failed",
+			Error:   response.Error,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, models.GetGasPriceControllerResponse{
+		Success:  true,
+		GasPrice: response.Result,
+		Message:  "Gas price retrieved successfully",
+	})
+}

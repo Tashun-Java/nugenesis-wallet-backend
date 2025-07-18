@@ -74,3 +74,17 @@ type GetTransactionCountResponse struct {
 	Result  string                          `json:"result,omitempty"`
 	Error   *models.SendRawTransactionError `json:"error,omitempty"`
 }
+
+type GetGasPriceRequest struct {
+	Jsonrpc string        `json:"jsonrpc"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
+	Id      int           `json:"id"`
+}
+
+type GetGasPriceResponse struct {
+	Jsonrpc string                          `json:"jsonrpc"`
+	Id      int                             `json:"id"`
+	Result  string                          `json:"result,omitempty"`
+	Error   *models.SendRawTransactionError `json:"error,omitempty"`
+}

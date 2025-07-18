@@ -44,3 +44,10 @@ type GetTransactionCountControllerResponse struct {
 	Error            *SendRawTransactionError `json:"error,omitempty"`
 	Message          string                   `json:"message,omitempty"`
 }
+
+type GetGasPriceControllerResponse struct {
+	Success  bool                     `json:"success"`
+	GasPrice string                   `json:"gasPrice,omitempty"`
+	Error    *SendRawTransactionError `json:"error,omitempty"`
+	Message  string                   `json:"message,omitempty"`
+}

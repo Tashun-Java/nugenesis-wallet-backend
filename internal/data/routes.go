@@ -29,6 +29,7 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 		ethGroup.POST("/feeEstimate", c.GetEstimateGas)
 		ethGroup.POST("/fees", c.GetEstimateGas)
 		ethGroup.POST("/getCount", c.GetTransactionCount)
+		ethGroup.GET("/getGasPrice", c.GetGasPrice)
 
 	}
 }
