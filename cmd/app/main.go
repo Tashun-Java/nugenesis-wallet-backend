@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/config"
@@ -72,5 +73,8 @@ func main() {
 		})
 	})
 
-	router.Run(":" + cfg.Port)
+	err := router.Run(":" + cfg.Port)
+	if err != nil {
+		fmt.Print("Failed to start server:", err)
+	}
 }

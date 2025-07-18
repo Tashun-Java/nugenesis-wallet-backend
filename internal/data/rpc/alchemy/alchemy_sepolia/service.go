@@ -44,7 +44,12 @@ func (s *Service) PostSendRawTransaction(signedTxs []string) (*alchemy_models.Se
 	if err != nil {
 		return nil, fmt.Errorf("failed to send POST request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}(resp.Body)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -84,7 +89,12 @@ func (s *Service) GetEstimateGas(transactionObject alchemy_models.TransactionObj
 	if err != nil {
 		return nil, fmt.Errorf("failed to send POST request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -124,7 +134,12 @@ func (s *Service) GetTransactionCount(address string, blockParameter string) (*a
 	if err != nil {
 		return nil, fmt.Errorf("failed to send POST request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Printf("failed to close response body: %v", err)
+		}
+	}(resp.Body)
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
