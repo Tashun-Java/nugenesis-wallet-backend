@@ -3,50 +3,58 @@ package data
 import (
 	"github.com/gin-gonic/gin"
 	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info"
-
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/etherscan"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_sepolia"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_general"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/models/general"
+	"os"
+	"sync"
 )
 
+// Controller instances (singletons)
+var (
+	bitcoinController        *blockchaininfo.Controller
+	ethereumController       *etherscan.Controller
+	alchemySepoliaController *alchemy_general.Controller
+	alchemyPolygonController *alchemy_general.Controller
+	controllerOnce           sync.Once
+)
+
+// Initialize controllers as singletons
+func initControllers() {
+	alchemySepoliaRpcApiKey := os.Getenv("ALCHEMY_SEPOLIA_RPC_API_KEY")
+	alchemyPolygonRpcApiKey := os.Getenv("ALCHEMY_POLYGON_RPC_API_KEY")
+
+	controllerOnce.Do(func() {
+		bitcoinController = blockchaininfo.NewController()
+		ethereumController = etherscan.NewController()
+		alchemySepoliaController = alchemy_general.NewController(&alchemySepoliaRpcApiKey)
+		alchemyPolygonController = alchemy_general.NewController(&alchemyPolygonRpcApiKey)
+	})
+}
+
 func RegisterRoutes(rg *gin.RouterGroup) {
+	// Initialize controllers once
+	initControllers()
+
 	productGroup := rg.Group("/data")
 	productGroup.GET("/", GetProducts)
 
-	// Create routes based on blockchain decimal values
 	blockchainGroup := productGroup.Group("/:id")
 	{
 		registerHistoricalRoutes(blockchainGroup)
 		RegisterRPCRoutes(blockchainGroup)
 	}
-
-	// Legacy routes for backward compatibility
-	//btcGroup := productGroup.Group("/btc")
-	//{
-	//	c := blockchaininfo.NewController()
-	//	btcGroup.GET("/address/:address", c.GetAddressInfo)
-	//}
-	//
-	//ethGroup := productGroup.Group("/eth")
-	//{
-	//	c := etherscan.NewController()
-	//	ethGroup.GET("/address/:address", c.GetAddressInfo)
-	//}
-
-	// Ethereum RPC routes
 }
 
 func registerHistoricalRoutes(rg *gin.RouterGroup) {
 	rg.GET("/address/:address", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
 
-		switch models.BlockchainDecimal(blockchainID) {
-		case models.Bitcoin:
-			c := blockchaininfo.NewController()
-			c.GetAddressInfo(ctx)
-		case models.Ethereum:
-			c := etherscan.NewController()
-			c.GetAddressInfo(ctx)
+		switch general.CoinType(blockchainID) {
+		case general.Bitcoin:
+			bitcoinController.GetAddressInfo(ctx)
+		case general.Ethereum:
+			ethereumController.GetAddressInfo(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -58,10 +66,11 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 	rg.POST("/send", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
 
-		switch models.BlockchainDecimal(blockchainID) {
-		case models.Sepolia:
-			c := alchemy_sepolia.NewController()
-			c.SendRawTransaction(ctx)
+		switch general.CoinType(blockchainID) {
+		case general.Polygon:
+			alchemyPolygonController.SendRawTransaction(ctx)
+		case general.Sepolia:
+			alchemySepoliaController.SendRawTransaction(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -70,10 +79,11 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 	rg.POST("/feeEstimate", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
 
-		switch models.BlockchainDecimal(blockchainID) {
-		case models.Sepolia:
-			c := alchemy_sepolia.NewController()
-			c.GetEstimateGas(ctx)
+		switch general.CoinType(blockchainID) {
+		case general.Polygon:
+			alchemyPolygonController.GetEstimateGas(ctx)
+		case general.Sepolia:
+			alchemySepoliaController.GetEstimateGas(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -82,10 +92,11 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 	rg.GET("/getGasPrice", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
 
-		switch models.BlockchainDecimal(blockchainID) {
-		case models.Sepolia:
-			c := alchemy_sepolia.NewController()
-			c.GetGasPrice(ctx)
+		switch general.CoinType(blockchainID) {
+		case general.Polygon:
+			alchemyPolygonController.GetGasPrice(ctx)
+		case general.Sepolia:
+			alchemySepoliaController.GetGasPrice(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -94,10 +105,11 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 	rg.POST("/getCount", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
 
-		switch models.BlockchainDecimal(blockchainID) {
-		case models.Sepolia:
-			c := alchemy_sepolia.NewController()
-			c.GetTransactionCount(ctx)
+		switch general.CoinType(blockchainID) {
+		case general.Polygon:
+			alchemyPolygonController.GetTransactionCount(ctx)
+		case general.Sepolia:
+			alchemySepoliaController.GetTransactionCount(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}

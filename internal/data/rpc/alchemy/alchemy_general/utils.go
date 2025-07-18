@@ -1,4 +1,4 @@
-package alchemy_sepolia
+package alchemy_general
 
 import (
 	"fmt"

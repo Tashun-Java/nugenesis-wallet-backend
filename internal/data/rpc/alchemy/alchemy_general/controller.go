@@ -1,8 +1,8 @@
-package alchemy_sepolia
+package alchemy_general
 
 import (
 	"net/http"
-	"os"
+	_ "os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_models"
@@ -13,9 +13,9 @@ type Controller struct {
 	service *Service
 }
 
-func NewController() *Controller {
+func NewController(key *string) *Controller {
 	return &Controller{
-		service: NewService(os.Getenv("ALCHEMY_SEPOLIA_API_KEY")),
+		service: NewService(key),
 	}
 }
 
