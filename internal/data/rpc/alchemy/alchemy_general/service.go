@@ -12,21 +12,21 @@ import (
 
 type Service struct {
 	apiKey  *string
-	baseURL string
+	baseURL *string
 	client  *http.Client
 }
 
-func NewService(apiKey *string) *Service {
+func NewService(apiKey *string, baseURL *string) *Service {
 	return &Service{
 		apiKey:  apiKey,
-		baseURL: "https://eth-sepolia.g.alchemy.com/v2/",
+		baseURL: baseURL,
 		client:  &http.Client{},
 	}
 }
 
 func (s *Service) PostSendRawTransaction(signedTxs []string) (*alchemy_models.SendRawTransactionResponse, error) {
 
-	url := fmt.Sprintf("%s%s", s.baseURL, *s.apiKey)
+	url := fmt.Sprintf("%s%s", *s.baseURL, *s.apiKey)
 
 	request := &alchemy_models.SendRawTransactionRequest{
 		Jsonrpc: "2.0",
@@ -71,7 +71,7 @@ func (s *Service) PostSendRawTransaction(signedTxs []string) (*alchemy_models.Se
 }
 
 func (s *Service) GetEstimateGas(transactionObject alchemy_models.TransactionObject) (*alchemy_models.EstimateGasResponse, error) {
-	url := fmt.Sprintf("%s%s", s.baseURL, *s.apiKey)
+	url := fmt.Sprintf("%s%s", *s.baseURL, *s.apiKey)
 
 	request := &alchemy_models.EstimateGasRequest{
 		Jsonrpc: "2.0",
@@ -116,7 +116,7 @@ func (s *Service) GetEstimateGas(transactionObject alchemy_models.TransactionObj
 }
 
 func (s *Service) GetTransactionCount(address string, blockParameter string) (*alchemy_models.GetTransactionCountResponse, error) {
-	url := fmt.Sprintf("%s%s", s.baseURL, *s.apiKey)
+	url := fmt.Sprintf("%s%s", *s.baseURL, *s.apiKey)
 
 	request := &alchemy_models.GetTransactionCountRequest{
 		Jsonrpc: "2.0",
@@ -161,7 +161,7 @@ func (s *Service) GetTransactionCount(address string, blockParameter string) (*a
 }
 
 func (s *Service) GetGasPrice() (*alchemy_models.GetGasPriceResponse, error) {
-	url := fmt.Sprintf("%s%s", s.baseURL, *s.apiKey)
+	url := fmt.Sprintf("%s%s", *s.baseURL, *s.apiKey)
 
 	request := &alchemy_models.GetGasPriceRequest{
 		Jsonrpc: "2.0",

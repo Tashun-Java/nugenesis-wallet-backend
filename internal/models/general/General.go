@@ -166,3 +166,62 @@ const (
 	Polymesh             CoinType = "160"
 	Sepolia              CoinType = "161"
 )
+
+//export class EthereumChainID {
+//value: number;
+//static ethereum: EthereumChainID;
+//static classic: EthereumChainID;
+//static rootstock: EthereumChainID;
+//static manta: EthereumChainID;
+//static poa: EthereumChainID;
+//static opbnb: EthereumChainID;
+//static tfuelevm: EthereumChainID;
+//static vechain: EthereumChainID;
+//static callisto: EthereumChainID;
+//static viction: EthereumChainID;
+//static polygon: EthereumChainID;
+//static okc: EthereumChainID;
+//static thundertoken: EthereumChainID;
+//static cfxevm: EthereumChainID;
+//static lightlink: EthereumChainID;
+//static merlin: EthereumChainID;
+//static mantle: EthereumChainID;
+//static bouncebit: EthereumChainID;
+//static gochain: EthereumChainID;
+//static zeneon: EthereumChainID;
+//static base: EthereumChainID;
+//static meter: EthereumChainID;
+//static celo: EthereumChainID;
+//static linea: EthereumChainID;
+//static blast: EthereumChainID;
+//static scroll: EthereumChainID;
+//static zklinknova: EthereumChainID;
+//static wanchain: EthereumChainID;
+//static cronos: EthereumChainID;
+//static optimism: EthereumChainID;
+//static xdai: EthereumChainID;
+//static smartbch: EthereumChainID;
+//static sonic: EthereumChainID;
+//static fantom: EthereumChainID;
+//static boba: EthereumChainID;
+//static kcc: EthereumChainID;
+//static zksync: EthereumChainID;
+//static heco: EthereumChainID;
+//static acalaevm: EthereumChainID;
+//static metis: EthereumChainID;
+//static polygonzkevm: EthereumChainID;
+//static moonbeam: EthereumChainID;
+//static moonriver: EthereumChainID;
+//static ronin: EthereumChainID;
+//static kavaevm: EthereumChainID;
+//static iotexevm: EthereumChainID;
+//static kaia: EthereumChainID;
+//static avalanchec: EthereumChainID;
+//static evmos: EthereumChainID;
+//static arbitrumnova: EthereumChainID;
+//static arbitrum: EthereumChainID;
+//static smartchain: EthereumChainID;
+//static zetaevm: EthereumChainID;
+//static neon: EthereumChainID;
+//static aurora: EthereumChainID;
+//}

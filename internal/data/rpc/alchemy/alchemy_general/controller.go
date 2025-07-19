@@ -2,6 +2,7 @@ package alchemy_general
 
 import (
 	"net/http"
+	"os"
 	_ "os"
 
 	"github.com/gin-gonic/gin"
@@ -13,9 +14,11 @@ type Controller struct {
 	service *Service
 }
 
-func NewController(key *string) *Controller {
+func NewController(baseUrl string) *Controller {
+	AlchemyApiKey := os.Getenv("ALCHEMY_API_KEY")
+	controllerBaseURL := baseUrl
 	return &Controller{
-		service: NewService(key),
+		service: NewService(&AlchemyApiKey, &controllerBaseURL),
 	}
 }
 
