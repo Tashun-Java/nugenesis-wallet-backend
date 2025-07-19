@@ -2,6 +2,7 @@ package data
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/alchemy"
 	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/etherscan"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_general"
@@ -12,10 +13,11 @@ import (
 
 // Controller pool
 type ControllerPool struct {
-	bitcoinController  *blockchaininfo.Controller
-	ethereumController *etherscan.Controller
-	alchemyControllers map[general.CoinType]*alchemy_general.Controller
-	once               sync.Once
+	bitcoinController      *blockchaininfo.Controller
+	ethereumController     *etherscan.Controller
+	alchemyTokenController *alchemy.Controller
+	alchemyControllers     map[general.CoinType]*alchemy_general.Controller
+	once                   sync.Once
 }
 
 var controllerPool *ControllerPool
@@ -32,6 +34,10 @@ func (cp *ControllerPool) GetEthereumController() *etherscan.Controller {
 	return cp.ethereumController
 }
 
+func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
+	return cp.alchemyTokenController
+}
+
 func initControllers() {
 	if controllerPool == nil {
 		controllerPool = &ControllerPool{
@@ -42,6 +48,7 @@ func initControllers() {
 	controllerPool.once.Do(func() {
 		controllerPool.bitcoinController = blockchaininfo.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
+		controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
 			general.Ethereum:        "ALCHEMY_ETHEREUM_RPC_BASE_URL",
@@ -67,6 +74,28 @@ func initControllers() {
 			general.Scroll:          "ALCHEMY_SCROLL_RPC_BASE_URL",
 			general.OpBNB:           "ALCHEMY_OPBNB_RPC_BASE_URL",
 			general.Sepolia:         "ALCHEMY_SEPOLIA_RPC_BASE_URL",
+			// Testnet mappings (mainnet + 160)
+			general.EthereumTest:        "ALCHEMY_ETHEREUM_TEST_RPC_BASE_URL",
+			general.OptimismTest:        "ALCHEMY_OPTIMISM_TEST_RPC_BASE_URL",
+			general.PolygonTest:         "ALCHEMY_POLYGON_TEST_RPC_BASE_URL",
+			general.PolygonzkEVMTest:    "ALCHEMY_POLYGONZK_TEST_RPC_BASE_URL",
+			general.ArbitrumTest:        "ALCHEMY_ARBITRUM_TEST_RPC_BASE_URL",
+			general.ZetaEVMTest:         "ALCHEMY_ZETA_TEST_RPC_BASE_URL",
+			general.MantleTest:          "ALCHEMY_MANTLE_TEST_RPC_BASE_URL",
+			general.BlastTest:           "ALCHEMY_BLAST_TEST_RPC_BASE_URL",
+			general.LineaTest:           "ALCHEMY_LINEA_TEST_RPC_BASE_URL",
+			general.RoninTest:           "ALCHEMY_RONIN_TEST_RPC_BASE_URL",
+			general.RootstockTest:       "ALCHEMY_ROOTSTOCK_TEST_RPC_BASE_URL",
+			general.ArbitrumNovaTest:    "ALCHEMY_ARBITRUMNOVA_TEST_RPC_BASE_URL",
+			general.BaseTest:            "ALCHEMY_BASE_TEST_RPC_BASE_URL",
+			general.AvalancheCChainTest: "ALCHEMY_AVALANCHE_TEST_RPC_BASE_URL",
+			general.BinanceTest:         "ALCHEMY_BINANCE_TEST_RPC_BASE_URL",
+			general.CeloTest:            "ALCHEMY_CELO_TEST_RPC_BASE_URL",
+			general.SonicTest:           "ALCHEMY_SONIC_TEST_RPC_BASE_URL",
+			general.SeiTest:             "ALCHEMY_SEI_TEST_RPC_BASE_URL",
+			general.ScrollTest:          "ALCHEMY_SCROLL_TEST_RPC_BASE_URL",
+			general.OpBNBTest:           "ALCHEMY_OPBNB_TEST_RPC_BASE_URL",
+			general.SepoliaTest:         "ALCHEMY_SEPOLIA_TEST_RPC_BASE_URL",
 		}
 
 		for coinType, envVar := range envMap {
@@ -103,6 +132,18 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
+	})
+
+	rg.GET("/tokens/:address", func(ctx *gin.Context) {
+		controllerPool.GetAlchemyTokenController().GetTokensByAddress(ctx)
+	})
+
+	rg.POST("/tokens", func(ctx *gin.Context) {
+		controllerPool.GetAlchemyTokenController().GetTokensByMultipleAddresses(ctx)
+	})
+
+	rg.GET("/tokens", func(ctx *gin.Context) {
+		controllerPool.GetAlchemyTokenController().GetTokensByAddressQuery(ctx)
 	})
 }
 

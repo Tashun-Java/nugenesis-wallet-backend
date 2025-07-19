@@ -14,6 +14,18 @@ type Transaction struct {
 	Hash    string `json:"hash"`
 }
 
+type Token struct {
+	Symbol    string `json:"symbol"`
+	Name      string `json:"name"`
+	Balance   string `json:"balance"`
+	Value     string `json:"value"`
+	Logo      string `json:"logo"`
+	Address   string `json:"address"`
+	Network   string `json:"network"`
+	TokenType string `json:"tokenType"`
+	Decimals  int    `json:"decimals"`
+}
+
 //type BlockchainDecimal string
 //
 //const (
