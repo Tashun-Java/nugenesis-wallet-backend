@@ -43,7 +43,7 @@ type TransactionObject struct {
 	From  string `json:"from"`
 	To    string `json:"to,omitempty"`
 	Value string `json:"value,omitempty"`
-	Data  string `json:"data,omitempty"`
+	Input string `json:"data,omitempty"`
 	Nonce string `json:"nonce,omitempty"`
 }
 

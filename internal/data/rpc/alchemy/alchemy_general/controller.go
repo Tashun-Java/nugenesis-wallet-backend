@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	_ "os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_models"
@@ -20,6 +21,25 @@ func NewController(baseUrl string) *Controller {
 	return &Controller{
 		service: NewService(&AlchemyApiKey, &controllerBaseURL),
 	}
+}
+
+func normalizeHexValue(value string) string {
+	if value == "" || value == "0" {
+		return "0x0"
+	}
+
+	// Remove 0x prefix if present
+	if strings.HasPrefix(value, "0x") || strings.HasPrefix(value, "0X") {
+		value = value[2:]
+	}
+
+	// Remove leading zeros but keep at least one digit
+	value = strings.TrimLeft(value, "0")
+	if value == "" {
+		value = "0"
+	}
+
+	return "0x" + value
 }
 
 func (c *Controller) SendRawTransaction(ctx *gin.Context) {
@@ -84,8 +104,8 @@ func (c *Controller) GetEstimateGas(ctx *gin.Context) {
 	transactionObject := alchemy_models.TransactionObject{
 		From:  request.From,
 		To:    request.To,
-		Value: request.Value,
-		Data:  request.Data,
+		Value: normalizeHexValue(request.Value),
+		Input: request.Data,
 		Nonce: request.Nonce,
 	}
 
