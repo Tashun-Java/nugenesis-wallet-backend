@@ -2,8 +2,8 @@ package utils
 
 import (
 	"fmt"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/Blockchain_info/blockchain_info_models"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/Blockchain_info/blockchain_info_models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"time"
 )
 

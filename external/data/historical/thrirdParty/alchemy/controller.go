@@ -2,7 +2,7 @@ package alchemy
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/alchemy/alchemy_models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/alchemy/alchemy_models"
 	"net/http"
 	"strconv"
 	"strings"

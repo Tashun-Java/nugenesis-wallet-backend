@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_models"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 )
 
 type Controller struct {

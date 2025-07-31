@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_models"
 	"io"
 	"log"
 	"net/http"

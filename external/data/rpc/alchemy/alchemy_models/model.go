@@ -1,6 +1,6 @@
 package alchemy_models
 
-import "github.com/tashunc/nugenesis-wallet-backend/internal/models"
+import "github.com/tashunc/nugenesis-wallet-backend/external/models"
 
 type AddressResponse struct {
 	Status  string    `json:"status"`

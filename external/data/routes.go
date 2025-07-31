@@ -2,11 +2,11 @@ package data
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/alchemy"
-	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/etherscan"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/rpc/alchemy/alchemy_general"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models/general"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/alchemy"
+	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockchain_info"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/etherscan"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_general"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models/general"
 	"os"
 	"sync"
 )

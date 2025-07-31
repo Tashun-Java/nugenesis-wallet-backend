@@ -2,11 +2,11 @@ package blockchaininfo
 
 import (
 	"fmt"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/data/historical/thrirdParty/blockchain_info/blockchain_info_models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockchain_info/blockchain_info_models"
 	"time"
 )
 import (
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 )
 
 func MapTxToTransaction(tx blockchain_info_models.Tx, userAddress string, txID string) models.Transaction {

@@ -2,7 +2,7 @@ package etherscan
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/internal/models"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"net/http"
 	"os"
 	"strconv"
