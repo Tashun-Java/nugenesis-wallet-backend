@@ -7,10 +7,12 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/config"
 	"github.com/tashunc/nugenesis-wallet-backend/external/auth"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data"
-	"github.com/tashunc/nugenesis-wallet-backend/external/middleware"
+	"github.com/tashunc/nugenesis-wallet-backend/static"
+
+	//"github.com/tashunc/nugenesis-wallet-backend/external/middleware"
 	"github.com/tashunc/nugenesis-wallet-backend/external/user"
 	"github.com/tashunc/nugenesis-wallet-backend/pkg/logger"
-	"github.com/tashunc/nugenesis-wallet-backend/services"
+	//"github.com/tashunc/nugenesis-wallet-backend/staticServices"
 	"net/http"
 	"time"
 )
@@ -25,14 +27,15 @@ func main() {
 	router.Use(cors.New(corsConfig))
 	router.Use(logger.GinLogger())
 
-	nonceStore := services.NewNonceStore()
+	//nonceStore := staticServices.NewNonceStore()
 	// API group
 	api := router.Group("/api")
 	{
 		user.RegisterRoutes(api)
 		data.RegisterRoutes(api)
 		auth.RegisterRoutes(api)
-		middleware.RegisterRoutes(api, nonceStore)
+		static.RegisterRoutes(api)
+		//middleware.RegisterRoutes(api, nonceStore)
 
 	}
 	router.GET("/api/nonce/info", func(c *gin.Context) {
@@ -64,13 +67,13 @@ func main() {
 			return
 		}
 
-		hash := nonceStore.RegisterNonce(request.Nonce, timestamp)
+		//hash := nonceStore.RegisterNonce(request.Nonce, timestamp)
 
-		c.JSON(http.StatusOK, gin.H{
-			"hash":      hash,
-			"timestamp": request.Timestamp,
-			"expires":   timestamp.Add(5 * time.Minute).Unix(),
-		})
+		//c.JSON(http.StatusOK, gin.H{
+		//	"hash":      hash,
+		//	"timestamp": request.Timestamp,
+		//	"expires":   timestamp.Add(5 * time.Minute).Unix(),
+		//})
 	})
 
 	err := router.Run(":" + cfg.Port)

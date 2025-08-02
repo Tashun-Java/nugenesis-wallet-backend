@@ -1,4 +1,4 @@
-package services
+package staticServices
 
 import (
 	"crypto/sha256"
