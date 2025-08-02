@@ -20,7 +20,11 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 
 	staticGroup := rg.Group("/static")
 	{
-		assetGroup := staticGroup.Group("/assets")
+		// Serve static asset files (logos, etc.)
+		staticGroup.Static("/assets", "./assets")
+
+		// API routes for asset data
+		assetGroup := staticGroup.Group("/api/assets")
 		{
 			assetGroup.GET("/symbols", assetController.GetAllSymbols)
 			assetGroup.GET("/symbol/:symbol", assetController.GetByCoinSymbol)
