@@ -58,7 +58,7 @@ func (s *AssetService) loadBlockchainAssets(blockchainPath, blockchainName strin
 			}
 
 			if logoExists {
-				nativeAsset.LogoPath = fmt.Sprintf("assets/blockchains/%s/info/logo.png", blockchainName)
+				nativeAsset.LogoPath = fmt.Sprintf("/api/static/assetsLogo/blockchains/%s/info/logo.png", blockchainName)
 			}
 
 			assets = append(assets, nativeAsset)
@@ -94,7 +94,7 @@ func (s *AssetService) loadBlockchainAssets(blockchainPath, blockchainName strin
 						}
 
 						if logoExists {
-							tokenAsset.LogoPath = fmt.Sprintf("assets/blockchains/%s/assets/%s/logo.png", blockchainName, entry.Name())
+							tokenAsset.LogoPath = fmt.Sprintf("/api/static/assetsLogo/blockchains/%s/assets/%s/logo.png", blockchainName, entry.Name())
 						}
 
 						assets = append(assets, tokenAsset)
