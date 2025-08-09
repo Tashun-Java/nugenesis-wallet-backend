@@ -49,9 +49,9 @@ type TransactionHistoryRequest struct {
 
 type TransactionHistoryResponse struct {
 	Transactions []Transaction `json:"transactions"`
-	Before       *string       `json:"before"`
-	After        *string       `json:"after"`
-	TotalCount   *int          `json:"totalCount"`
+	Before       string        `json:"before"`
+	After        string        `json:"after"`
+	TotalCount   int           `json:"totalCount"`
 }
 
 type Transaction struct {
@@ -60,7 +60,7 @@ type Transaction struct {
 	TimeStamp         string           `json:"timeStamp"`
 	BlockNumber       int              `json:"blockNumber"`
 	BlockHash         string           `json:"blockHash"`
-	Nonce             int              `json:"nonce"`
+	Nonce             string           `json:"nonce"`
 	TransactionIndex  int              `json:"transactionIndex"`
 	FromAddress       string           `json:"fromAddress"`
 	ToAddress         string           `json:"toAddress"`
@@ -75,7 +75,7 @@ type Transaction struct {
 
 type TransactionLog struct {
 	ContractAddress string   `json:"contractAddress"`
-	LogIndex        string   `json:"logIndex"`
+	LogIndex        int      `json:"logIndex"`
 	Data            string   `json:"data"`
 	Removed         bool     `json:"removed"`
 	Topics          []string `json:"topics"`

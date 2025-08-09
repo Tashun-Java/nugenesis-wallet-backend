@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/alchemy"
 	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockchain_info"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockstream"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/etherscan"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_general"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models/general"
@@ -13,21 +14,30 @@ import (
 
 // Controller pool
 type ControllerPool struct {
-	bitcoinController      *blockchaininfo.Controller
-	ethereumController     *etherscan.Controller
-	alchemyTokenController *alchemy.Controller
-	alchemyControllers     map[general.CoinType]*alchemy_general.Controller
-	once                   sync.Once
+	bitcoinController          *blockchaininfo.Controller
+	blockstreamController      *blockstream.Controller
+	ethereumController         *etherscan.Controller
+	alchemyTokenController     *alchemy.Controller
+	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
+	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
+	once                       sync.Once
 }
 
 var controllerPool *ControllerPool
 
-func (cp *ControllerPool) GetAlchemyController(coinType general.CoinType) *alchemy_general.Controller {
-	return cp.alchemyControllers[coinType]
+func (cp *ControllerPool) GetAlchemyRPCController(coinType general.CoinType) *alchemy_general.Controller {
+	return cp.alchemyRPCControllers[coinType]
+}
+func (cp *ControllerPool) GetAlchemyHistoricController(coinType general.CoinType) *alchemy.Controller {
+	return cp.alchemyHistoricControllers[coinType]
 }
 
 func (cp *ControllerPool) GetBitcoinController() *blockchaininfo.Controller {
 	return cp.bitcoinController
+}
+
+func (cp *ControllerPool) GetBlockstreamController() *blockstream.Controller {
+	return cp.blockstreamController
 }
 
 func (cp *ControllerPool) GetEthereumController() *etherscan.Controller {
@@ -41,16 +51,20 @@ func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
 func initControllers() {
 	if controllerPool == nil {
 		controllerPool = &ControllerPool{
-			alchemyControllers: make(map[general.CoinType]*alchemy_general.Controller),
+			alchemyRPCControllers:      make(map[general.CoinType]*alchemy_general.Controller),
+			alchemyHistoricControllers: make(map[general.CoinType]*alchemy.Controller),
 		}
 	}
 
 	controllerPool.once.Do(func() {
 		controllerPool.bitcoinController = blockchaininfo.NewController()
+		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
-		controllerPool.alchemyTokenController = alchemy.NewController()
+		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
+			general.Bitcoin:         "ALCHEMY_BITCOIN_RPC_BASE_URL",
+			general.Solana:          "ALCHEMY_SOLANA_RPC_BASE_URL",
 			general.Ethereum:        "ALCHEMY_ETHEREUM_RPC_BASE_URL",
 			general.Optimism:        "ALCHEMY_OPTIMISM_RPC_BASE_URL",
 			general.Polygon:         "ALCHEMY_POLYGON_RPC_BASE_URL",
@@ -100,7 +114,8 @@ func initControllers() {
 
 		for coinType, envVar := range envMap {
 			if url := os.Getenv(envVar); url != "" {
-				controllerPool.alchemyControllers[coinType] = alchemy_general.NewController(url)
+				controllerPool.alchemyRPCControllers[coinType] = alchemy_general.NewController(url)
+				controllerPool.alchemyHistoricControllers[coinType] = alchemy.NewController(url)
 			}
 		}
 	})
@@ -123,10 +138,17 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 func registerHistoricalRoutes(rg *gin.RouterGroup) {
 	rg.GET("/address/:address", func(ctx *gin.Context) {
 		blockchainID := ctx.Param("id")
-
+		//coinType := general.CoinType(blockchainID)
+		//
+		//if controller := controllerPool.GetAlchemyHistoricController(coinType); controller != nil {
+		//	controller.GetTransactionHistoryByAddress(ctx)
+		//} else {
+		//	ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
+		//}
+		//
 		switch general.CoinType(blockchainID) {
 		case general.Bitcoin:
-			controllerPool.GetBitcoinController().GetAddressInfo(ctx)
+			controllerPool.GetBlockstreamController().GetAddressTransactions(ctx)
 		case general.Ethereum:
 			controllerPool.GetEthereumController().GetAddressInfo(ctx)
 		default:
@@ -153,7 +175,7 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 		blockchainID := ctx.Param("id")
 		coinType := general.CoinType(blockchainID)
 
-		if controller := controllerPool.GetAlchemyController(coinType); controller != nil {
+		if controller := controllerPool.GetAlchemyRPCController(coinType); controller != nil {
 			controller.SendRawTransaction(ctx)
 		} else {
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
@@ -164,7 +186,7 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 		blockchainID := ctx.Param("id")
 		coinType := general.CoinType(blockchainID)
 
-		if controller := controllerPool.GetAlchemyController(coinType); controller != nil {
+		if controller := controllerPool.GetAlchemyRPCController(coinType); controller != nil {
 			controller.GetEstimateGas(ctx)
 		} else {
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
@@ -175,7 +197,7 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 		blockchainID := ctx.Param("id")
 		coinType := general.CoinType(blockchainID)
 
-		if controller := controllerPool.GetAlchemyController(coinType); controller != nil {
+		if controller := controllerPool.GetAlchemyRPCController(coinType); controller != nil {
 			controller.GetGasPrice(ctx)
 		} else {
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
@@ -186,7 +208,7 @@ func RegisterRPCRoutes(rg *gin.RouterGroup) {
 		blockchainID := ctx.Param("id")
 		coinType := general.CoinType(blockchainID)
 
-		if controller := controllerPool.GetAlchemyController(coinType); controller != nil {
+		if controller := controllerPool.GetAlchemyRPCController(coinType); controller != nil {
 			controller.GetTransactionCount(ctx)
 		} else {
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
