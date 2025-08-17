@@ -6,6 +6,7 @@ import (
 	blockchaininfo "github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockchain_info"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockstream"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/etherscan"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/helius"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_general"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models/general"
 	"os"
@@ -17,6 +18,7 @@ type ControllerPool struct {
 	bitcoinController          *blockchaininfo.Controller
 	blockstreamController      *blockstream.Controller
 	ethereumController         *etherscan.Controller
+	solanaController           *helius.Controller
 	alchemyTokenController     *alchemy.Controller
 	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
 	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
@@ -44,6 +46,10 @@ func (cp *ControllerPool) GetEthereumController() *etherscan.Controller {
 	return cp.ethereumController
 }
 
+func (cp *ControllerPool) GetSolanaController() *helius.Controller {
+	return cp.solanaController
+}
+
 func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
 	return cp.alchemyTokenController
 }
@@ -60,6 +66,7 @@ func initControllers() {
 		controllerPool.bitcoinController = blockchaininfo.NewController()
 		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
+		controllerPool.solanaController = helius.NewController()
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
@@ -151,6 +158,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetBlockstreamController().GetAddressTransactions(ctx)
 		case general.Ethereum:
 			controllerPool.GetEthereumController().GetAddressInfo(ctx)
+		case general.Solana:
+			controllerPool.GetSolanaController().GetAddressInfo(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}

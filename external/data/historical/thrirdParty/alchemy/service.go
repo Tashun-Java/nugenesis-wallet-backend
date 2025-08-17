@@ -130,3 +130,5 @@ func (s *Service) GetTransactionHistory(addresses []alchemy_models.AddressReques
 
 	return &response, nil
 }
+
+//func (s *Service) GetSolanaHistory	(addresses []alchemy_models.AddressRequest, limit *int) (*alchemy_models.TokensByAddressResponse, error) {
