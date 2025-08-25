@@ -101,8 +101,8 @@ func MapTxToTransaction(tx helius_models.Transaction) []models.Transaction {
 				Type:    transactionType,
 				Status:  "success", // assuming no error in the transaction
 				Token:   token,
-				Amount:  fmt.Sprintf("%d", transfer.Amount),
-				Value:   fmt.Sprintf("%d", transfer.Amount),
+				Amount:  fmt.Sprintf("%.9d SOL", transfer.Amount),
+				Value:   fmt.Sprintf("%.9d SOL", transfer.Amount),
 				Address: address,
 				Date:    date,
 				Time:    timeFormatted,
