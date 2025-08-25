@@ -16,7 +16,7 @@ var programMapping = map[string]string{
 	"MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr": "memo",            // Memo Program
 }
 
-func MapTxToTransaction(tx helius_models.Transaction) models.Transaction {
+func MapTxToTransaction(tx helius_models.Transaction) []models.Transaction {
 	// Extract the necessary fields from the transaction data
 	signature := tx.Signature
 	fee := float64(tx.Fee) / 1e9 // Convert lamports to SOL (1 SOL = 1e9 lamports)
@@ -78,19 +78,42 @@ func MapTxToTransaction(tx helius_models.Transaction) models.Transaction {
 	}
 
 	// Return the mapped transaction
-	return models.Transaction{
-		ID:      signature,
-		Type:    transactionType,
-		Status:  "success", // assuming no error in the transaction
-		Token:   token,
-		Amount:  amount,
-		Value:   value,
-		Address: address,
-		Date:    date,
-		Time:    timeFormatted,
-		Fee:     fmt.Sprintf("%.9f SOL", fee),
-		Hash:    signature,
+	var mappedTransactions []models.Transaction
+	if len(tx.NativeTransfers) == 0 {
+		mappedTransactions = append(mappedTransactions, models.Transaction{
+			ID:      signature,
+			Type:    transactionType,
+			Status:  "success", // assuming no error in the transaction
+			Token:   token,
+			Amount:  amount,
+			Value:   value,
+			Address: address,
+			Date:    date,
+			Time:    timeFormatted,
+			Fee:     fmt.Sprintf("%.9f SOL", fee),
+			Hash:    signature,
+		})
+	} else {
+
+		for _, transfer := range tx.NativeTransfers {
+			mappedTransactions = append(mappedTransactions, models.Transaction{
+				ID:      signature,
+				Type:    transactionType,
+				Status:  "success", // assuming no error in the transaction
+				Token:   token,
+				Amount:  fmt.Sprintf("%d", transfer.Amount),
+				Value:   fmt.Sprintf("%d", transfer.Amount),
+				Address: address,
+				Date:    date,
+				Time:    timeFormatted,
+				Fee:     fmt.Sprintf("%.9f SOL", fee),
+				Hash:    signature,
+			})
+		}
+
 	}
+
+	return mappedTransactions
 
 }
 

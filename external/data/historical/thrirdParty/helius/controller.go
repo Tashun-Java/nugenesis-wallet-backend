@@ -50,7 +50,7 @@ func (c *Controller) GetAddressInfo(ctx *gin.Context) {
 	var mappedTxs []models.Transaction
 	for _, tx := range txInfo {
 		mapped := MapTxToTransaction(tx)
-		mappedTxs = append(mappedTxs, mapped)
+		mappedTxs = append(mappedTxs, mapped...)
 	}
 
 	ctx.JSON(http.StatusOK, mappedTxs)
