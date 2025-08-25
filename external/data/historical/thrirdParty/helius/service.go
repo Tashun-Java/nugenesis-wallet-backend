@@ -3,6 +3,7 @@ package helius
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/helius/helius_models"
 	"io"
 	"net/http"
 	"os"
@@ -23,7 +24,7 @@ func NewService() *Service {
 }
 
 // GetAddressInfo retrieves information about a specific address
-func (s *Service) GetAddressInfo(address string, limit, offset int) (interface{}, error) {
+func (s *Service) GetAddressInfo(address string, limit, offset int) ([]helius_models.Transaction, error) {
 	url := fmt.Sprintf("%s/addresses/%s/transactions?api-key=%s&limit=%d&offset=%d", s.baseURL, address, s.apiKey, limit, offset)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -37,7 +38,7 @@ func (s *Service) GetAddressInfo(address string, limit, offset int) (interface{}
 
 	fmt.Println("Helius response:", string(body))
 
-	var result interface{}
+	var result []helius_models.Transaction
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}

@@ -2,6 +2,9 @@ package helius
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/external/models"
+
+	//"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"net/http"
 	"strconv"
 )
@@ -44,12 +47,12 @@ func (c *Controller) GetAddressInfo(ctx *gin.Context) {
 		return
 	}
 
-	//var mappedTxs []models.Transaction
-	//for _, tx := range txInfo.Result {
-	//	mapped := MapTxToTransaction(tx, address)
-	//	mappedTxs = append(mappedTxs, mapped)
-	//}
+	var mappedTxs []models.Transaction
+	for _, tx := range txInfo {
+		mapped := MapTxToTransaction(tx)
+		mappedTxs = append(mappedTxs, mapped)
+	}
 
-	//ctx.JSON(http.StatusOK, mappedTxs)
-	ctx.JSON(http.StatusOK, txInfo)
+	ctx.JSON(http.StatusOK, mappedTxs)
+	//ctx.JSON(http.StatusOK, txInfo)
 }
