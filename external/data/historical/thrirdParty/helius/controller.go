@@ -49,7 +49,7 @@ func (c *Controller) GetAddressInfo(ctx *gin.Context) {
 
 	var mappedTxs []models.Transaction
 	for _, tx := range txInfo {
-		mapped := MapTxToTransaction(tx)
+		mapped := MapTxToTransaction(tx, address)
 		mappedTxs = append(mappedTxs, mapped...)
 	}
 

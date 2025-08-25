@@ -16,7 +16,7 @@ var programMapping = map[string]string{
 	"MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr": "memo",            // Memo Program
 }
 
-func MapTxToTransaction(tx helius_models.Transaction) []models.Transaction {
+func MapTxToTransaction(tx helius_models.Transaction, address string) []models.Transaction {
 	// Extract the necessary fields from the transaction data
 	signature := tx.Signature
 	fee := float64(tx.Fee) / 1e9 // Convert lamports to SOL (1 SOL = 1e9 lamports)
@@ -31,7 +31,7 @@ func MapTxToTransaction(tx helius_models.Transaction) []models.Transaction {
 	token := "SOL"
 	amount := "0" // Since no native transfer or token transfer
 	value := "0"  // Same as amount
-	address := feePayer
+	//address := feePayer
 
 	// Check if there are instructions and map the programId to type
 	for _, instruction := range tx.Instructions {
@@ -81,33 +81,44 @@ func MapTxToTransaction(tx helius_models.Transaction) []models.Transaction {
 	var mappedTransactions []models.Transaction
 	if len(tx.NativeTransfers) == 0 {
 		mappedTransactions = append(mappedTransactions, models.Transaction{
-			ID:      signature,
-			Type:    transactionType,
-			Status:  "success", // assuming no error in the transaction
-			Token:   token,
-			Amount:  amount,
-			Value:   value,
-			Address: address,
-			Date:    date,
-			Time:    timeFormatted,
-			Fee:     fmt.Sprintf("%.9f SOL", fee),
-			Hash:    signature,
+			ID:       signature,
+			Type:     "send",
+			Category: transactionType,
+			Status:   "success", // assuming no error in the transaction
+			Token:    token,
+			Amount:   amount,
+			Value:    value,
+			Address:  feePayer,
+			Date:     date,
+			Time:     timeFormatted,
+			Fee:      fmt.Sprintf("%.9f", fee),
+			Hash:     signature,
 		})
 	} else {
 
 		for _, transfer := range tx.NativeTransfers {
+			if address == transfer.FromUserAccount {
+				transactionType = "send"
+			} else if address == transfer.ToUserAccount {
+				transactionType = "receive"
+			} else {
+				transactionType = "Error"
+			}
+			solAmount := float64(transfer.Amount) / 1e9
 			mappedTransactions = append(mappedTransactions, models.Transaction{
-				ID:      signature,
-				Type:    transactionType,
-				Status:  "success", // assuming no error in the transaction
-				Token:   token,
-				Amount:  fmt.Sprintf("%.9d SOL", transfer.Amount),
-				Value:   fmt.Sprintf("%.9d SOL", transfer.Amount),
-				Address: address,
-				Date:    date,
-				Time:    timeFormatted,
-				Fee:     fmt.Sprintf("%.9f SOL", fee),
-				Hash:    signature,
+				ID:        signature,
+				Type:      transactionType,
+				Category:  "native_transfer",
+				Status:    "success", // assuming no error in the transaction
+				Token:     token,
+				Amount:    fmt.Sprintf("%.9f", solAmount),
+				Value:     fmt.Sprintf("%.9f", solAmount),
+				Address:   feePayer,
+				ToAddress: transfer.ToUserAccount,
+				Date:      date,
+				Time:      timeFormatted,
+				Fee:       fmt.Sprintf("%.9f", fee),
+				Hash:      signature,
 			})
 		}
 
