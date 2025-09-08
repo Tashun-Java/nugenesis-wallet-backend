@@ -1,10 +1,13 @@
 package moralis
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis/moralis_models"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"math/big"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -23,13 +26,37 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		relevantAddress = truncateAddress(tx.FromAddress)
 	}
 
-	// Convert Wei to ETH (assuming 18 decimals for native token)
-	valueWei := new(big.Int)
-	valueWei.SetString(tx.Value, 10)
-	valueFlt := new(big.Float).SetInt(valueWei)
-	ethDivisor := new(big.Float).SetFloat64(1e18)
-	ethValue := new(big.Float).Quo(valueFlt, ethDivisor)
-	ethAmount, _ := ethValue.Float64()
+	// Calculate transaction amount and determine token symbol
+	var ethAmount float64
+	tokenSymbol := "MATIC" // Default to native token
+
+	// Priority order: Native transfers -> ERC-20 transfers -> NFT transfers -> Legacy parsing
+
+	// 1. Check native transfers first (most reliable)
+	if len(tx.NativeTransfers) > 0 {
+		ethAmount, tokenSymbol = extractNativeTransferAmount(tx.NativeTransfers, walletAddress)
+	} else if len(tx.ERC20Transfers) > 0 {
+		// 2. Check ERC-20 transfers
+		ethAmount, tokenSymbol = extractERC20TransferAmount(tx.ERC20Transfers, walletAddress)
+	} else if len(tx.NFTTransfers) > 0 {
+		// 3. Check NFT transfers
+		ethAmount, tokenSymbol = extractNFTTransferAmount(tx.NFTTransfers, walletAddress)
+	} else if tx.Value != "" {
+		// 4. Legacy: parse native value field directly
+		valueWei := new(big.Int)
+		if _, ok := valueWei.SetString(tx.Value, 10); ok && valueWei.Cmp(big.NewInt(0)) > 0 {
+			valueFlt := new(big.Float).SetInt(valueWei)
+			ethDivisor := new(big.Float).SetFloat64(1e18)
+			ethValue := new(big.Float).Quo(valueFlt, ethDivisor)
+			ethAmount, _ = ethValue.Float64()
+		} else {
+			// 5. Fallback to checking logs manually
+			ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
+		}
+	} else {
+		// 6. Final fallback to logs
+		ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
+	}
 
 	// Calculate fee in ETH
 	//gasPrice, _ := strconv.ParseInt(tx.GasPrice, 10, 64)
@@ -57,7 +84,7 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		Type:      txType,
 		Category:  category,
 		Status:    status,
-		Token:     "MATIC",
+		Token:     tokenSymbol,
 		Amount:    fmt.Sprintf("%.6f", ethAmount),
 		Value:     fmt.Sprintf("$%.2f", ethAmount*2.0), // Example price, should use real rates
 		Address:   relevantAddress,
@@ -82,4 +109,212 @@ func truncateHash(hash string) string {
 		return hash
 	}
 	return hash[:6] + "..." + hash[len(hash)-4:]
+}
+
+// extractTokenTransferAmount extracts the transfer amount from ERC-20 token transfer logs
+func extractTokenTransferAmount(logs []moralis_models.Log, walletAddress string) (float64, string) {
+	// ERC-20 Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
+	// Topic0 for Transfer: 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef
+	transferEventTopic := "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+
+	for _, log := range logs {
+		// Check if this is a Transfer event
+		if log.Topic0 != transferEventTopic {
+			continue
+		}
+
+		// Extract from and to addresses from topics
+		if len(log.Topic1) < 26 || len(log.Topic2) < 26 {
+			continue
+		}
+
+		fromAddr := "0x" + strings.ToLower(log.Topic1[26:]) // Remove padding
+		toAddr := "0x" + strings.ToLower(log.Topic2[26:])   // Remove padding
+		walletAddrLower := strings.ToLower(walletAddress)
+
+		// Check if this transfer involves our wallet
+		if fromAddr != walletAddrLower && toAddr != walletAddrLower {
+			continue
+		}
+
+		// Extract amount from data field
+		if len(log.Data) < 2 {
+			continue
+		}
+
+		// Remove 0x prefix and decode hex
+		dataHex := log.Data[2:]
+		if len(dataHex) == 0 {
+			continue
+		}
+
+		// Parse the amount (assuming 18 decimals for most tokens)
+		amountBytes, err := hex.DecodeString(dataHex)
+		if err != nil {
+			continue
+		}
+
+		amountBig := new(big.Int).SetBytes(amountBytes)
+		if amountBig.Cmp(big.NewInt(0)) == 0 {
+			continue
+		}
+
+		// Convert to float (assuming 18 decimals)
+		amountFloat := new(big.Float).SetInt(amountBig)
+		divisor := new(big.Float).SetFloat64(1e18)
+		result := new(big.Float).Quo(amountFloat, divisor)
+		amount, _ := result.Float64()
+
+		// Try to determine token symbol (this is basic - in practice you'd query the contract)
+		tokenSymbol := getTokenSymbolFromAddress(log.Address)
+
+		return amount, tokenSymbol
+	}
+
+	return 0, "MATIC"
+}
+
+// extractNativeTransferAmount extracts amount from native transfers (POL/MATIC)
+func extractNativeTransferAmount(transfers []moralis_models.NativeTransfer, walletAddress string) (float64, string) {
+	walletAddrLower := strings.ToLower(walletAddress)
+
+	for _, transfer := range transfers {
+		// Check if this transfer involves our wallet
+		fromAddr := strings.ToLower(transfer.FromAddress)
+		toAddr := strings.ToLower(transfer.ToAddress)
+
+		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// Use the pre-formatted value from Moralis (much more reliable)
+			if transfer.ValueFormatted != "" {
+				if amount, err := strconv.ParseFloat(transfer.ValueFormatted, 64); err == nil {
+					tokenSymbol := transfer.TokenSymbol
+					if tokenSymbol == "" {
+						tokenSymbol = "MATIC" // Default fallback
+					}
+					return amount, tokenSymbol
+				}
+			}
+
+			// Fallback to parsing raw value
+			if transfer.Value != "" {
+				amountBig := new(big.Int)
+				if _, ok := amountBig.SetString(transfer.Value, 10); ok && amountBig.Cmp(big.NewInt(0)) > 0 {
+					amountFloat := new(big.Float).SetInt(amountBig)
+					divisor := new(big.Float).SetFloat64(1e18)
+					result := new(big.Float).Quo(amountFloat, divisor)
+					amount, _ := result.Float64()
+
+					tokenSymbol := transfer.TokenSymbol
+					if tokenSymbol == "" {
+						tokenSymbol = "MATIC" // Default fallback
+					}
+					return amount, tokenSymbol
+				}
+			}
+		}
+	}
+
+	return 0, "MATIC"
+}
+
+// extractERC20TransferAmount extracts amount from ERC-20 transfers
+func extractERC20TransferAmount(transfers []moralis_models.ERC20Transfer, walletAddress string) (float64, string) {
+	walletAddrLower := strings.ToLower(walletAddress)
+
+	for _, transfer := range transfers {
+		// Check if this transfer involves our wallet
+		fromAddr := strings.ToLower(transfer.FromAddress)
+		toAddr := strings.ToLower(transfer.ToAddress)
+
+		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// Use the pre-formatted value from Moralis (much more reliable)
+			if transfer.ValueFormatted != "" {
+				if amount, err := strconv.ParseFloat(transfer.ValueFormatted, 64); err == nil {
+					tokenSymbol := transfer.TokenSymbol
+					if tokenSymbol == "" {
+						tokenSymbol = "TOKEN" // Default fallback
+					}
+					return amount, tokenSymbol
+				}
+			}
+
+			// Fallback to parsing raw value with decimals
+			if transfer.Value != "" {
+				amountBig := new(big.Int)
+				if _, ok := amountBig.SetString(transfer.Value, 10); ok && amountBig.Cmp(big.NewInt(0)) > 0 {
+					// Use token decimals if available, otherwise default to 18
+					decimals := 18
+					if transfer.TokenDecimals != "" {
+						if d, err := strconv.Atoi(transfer.TokenDecimals); err == nil {
+							decimals = d
+						}
+					}
+
+					amountFloat := new(big.Float).SetInt(amountBig)
+					divisor := new(big.Float).SetFloat64(float64(1))
+					for i := 0; i < decimals; i++ {
+						divisor.Mul(divisor, new(big.Float).SetFloat64(10))
+					}
+					result := new(big.Float).Quo(amountFloat, divisor)
+					amount, _ := result.Float64()
+
+					tokenSymbol := transfer.TokenSymbol
+					if tokenSymbol == "" {
+						tokenSymbol = "TOKEN" // Default fallback
+					}
+					return amount, tokenSymbol
+				}
+			}
+		}
+	}
+
+	return 0, "TOKEN"
+}
+
+// extractNFTTransferAmount extracts amount from NFT transfers
+func extractNFTTransferAmount(transfers []moralis_models.NFTTransfer, walletAddress string) (float64, string) {
+	walletAddrLower := strings.ToLower(walletAddress)
+
+	for _, transfer := range transfers {
+		// Check if this transfer involves our wallet
+		fromAddr := strings.ToLower(transfer.FromAddress)
+		toAddr := strings.ToLower(transfer.ToAddress)
+
+		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// For NFTs, we typically show the count/amount rather than value
+			amountBig := new(big.Int)
+			if _, ok := amountBig.SetString(transfer.Amount, 10); ok {
+				amount, _ := amountBig.Float64()
+
+				// Use contract type as token symbol for NFTs
+				tokenSymbol := transfer.ContractType
+				if tokenSymbol == "" {
+					tokenSymbol = "NFT"
+				}
+
+				return amount, tokenSymbol
+			}
+		}
+	}
+
+	return 0, "NFT"
+}
+
+// getTokenSymbolFromAddress returns a token symbol based on contract address
+func getTokenSymbolFromAddress(contractAddress string) string {
+	// Common Polygon token addresses (simplified mapping)
+	knownTokens := map[string]string{
+		"0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0": "MATIC",
+		"0x2791bca1f2de4661ed88a30c99a7a9449aa84174": "USDC",
+		"0xc2132d05d31c914a87c6611c10748aeb04b58e8f": "USDT",
+		"0x8f3cf7ad23cd3cadbd9735aff958023239c6a063": "DAI",
+		"0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6": "WBTC",
+		"0x7ceb23fd6c6b4db8c56f38e38f33bf1e6df3c3c9": "WETH",
+	}
+
+	if symbol, exists := knownTokens[strings.ToLower(contractAddress)]; exists {
+		return symbol
+	}
+
+	return "TOKEN" // Default fallback
 }
