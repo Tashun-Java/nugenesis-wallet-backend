@@ -7,6 +7,7 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/blockstream"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/etherscan"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/helius"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_general"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models/general"
 	"os"
@@ -19,6 +20,7 @@ type ControllerPool struct {
 	blockstreamController      *blockstream.Controller
 	ethereumController         *etherscan.Controller
 	solanaController           *helius.Controller
+	polygonController          *moralis.Controller
 	alchemyTokenController     *alchemy.Controller
 	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
 	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
@@ -50,6 +52,10 @@ func (cp *ControllerPool) GetSolanaController() *helius.Controller {
 	return cp.solanaController
 }
 
+func (cp *ControllerPool) GetPolygonController() *moralis.Controller {
+	return cp.polygonController
+}
+
 func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
 	return cp.alchemyTokenController
 }
@@ -67,6 +73,7 @@ func initControllers() {
 		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
 		controllerPool.solanaController = helius.NewController()
+		controllerPool.polygonController = moralis.NewController("polygon")
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
@@ -160,6 +167,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetEthereumController().GetAddressInfo(ctx)
 		case general.Solana:
 			controllerPool.GetSolanaController().GetAddressInfo(ctx)
+		case general.Polygon:
+			controllerPool.GetPolygonController().GetWalletHistory(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
