@@ -18,15 +18,6 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 	// Determine transaction type and relevant address
 	txType := "unknown"
 	relevantAddress := ""
-	if tx.FromAddress == walletAddress {
-		txType = "send"
-		relevantAddress = truncateAddress(tx.ToAddress)
-	} else if tx.ToAddress == walletAddress {
-		txType = "receive"
-		relevantAddress = truncateAddress(tx.FromAddress)
-	}
-
-	// Calculate transaction amount and determine token symbol
 	var ethAmount float64
 	tokenSymbol := "MATIC" // Default to native token
 
@@ -34,28 +25,68 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 
 	// 1. Check native transfers first (most reliable)
 	if len(tx.NativeTransfers) > 0 {
-		ethAmount, tokenSymbol = extractNativeTransferAmount(tx.NativeTransfers, walletAddress)
+		ethAmount, tokenSymbol, txType = extractNativeTransferAmountAndType(tx.NativeTransfers, walletAddress)
+		if txType == "send" {
+			relevantAddress = truncateAddress(tx.ToAddress)
+		} else if txType == "receive" {
+			relevantAddress = truncateAddress(tx.FromAddress)
+		}
 	} else if len(tx.ERC20Transfers) > 0 {
 		// 2. Check ERC-20 transfers
-		ethAmount, tokenSymbol = extractERC20TransferAmount(tx.ERC20Transfers, walletAddress)
+		ethAmount, tokenSymbol, txType = extractERC20TransferAmountAndType(tx.ERC20Transfers, walletAddress)
+		if txType == "send" {
+			relevantAddress = truncateAddress(tx.ToAddress)
+		} else if txType == "receive" {
+			relevantAddress = truncateAddress(tx.FromAddress)
+		}
 	} else if len(tx.NFTTransfers) > 0 {
 		// 3. Check NFT transfers
-		ethAmount, tokenSymbol = extractNFTTransferAmount(tx.NFTTransfers, walletAddress)
+		ethAmount, tokenSymbol, txType = extractNFTTransferAmountAndType(tx.NFTTransfers, walletAddress)
+		if txType == "send" {
+			relevantAddress = truncateAddress(tx.ToAddress)
+		} else if txType == "receive" {
+			relevantAddress = truncateAddress(tx.FromAddress)
+		}
 	} else if tx.Value != "" {
-		// 4. Legacy: parse native value field directly
+		// 4. Legacy: parse native value field directly and determine type manually
 		valueWei := new(big.Int)
 		if _, ok := valueWei.SetString(tx.Value, 10); ok && valueWei.Cmp(big.NewInt(0)) > 0 {
 			valueFlt := new(big.Float).SetInt(valueWei)
 			ethDivisor := new(big.Float).SetFloat64(1e18)
 			ethValue := new(big.Float).Quo(valueFlt, ethDivisor)
 			ethAmount, _ = ethValue.Float64()
+
+			// Manual type determination for legacy parsing
+			if tx.FromAddress == walletAddress {
+				txType = "send"
+				relevantAddress = truncateAddress(tx.ToAddress)
+			} else if tx.ToAddress == walletAddress {
+				txType = "receive"
+				relevantAddress = truncateAddress(tx.FromAddress)
+			}
 		} else {
 			// 5. Fallback to checking logs manually
 			ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
+			// Manual type determination for log parsing
+			if tx.FromAddress == walletAddress {
+				txType = "send"
+				relevantAddress = truncateAddress(tx.ToAddress)
+			} else if tx.ToAddress == walletAddress {
+				txType = "receive"
+				relevantAddress = truncateAddress(tx.FromAddress)
+			}
 		}
 	} else {
 		// 6. Final fallback to logs
 		ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
+		// Manual type determination for log parsing
+		if tx.FromAddress == walletAddress {
+			txType = "send"
+			relevantAddress = truncateAddress(tx.ToAddress)
+		} else if tx.ToAddress == walletAddress {
+			txType = "receive"
+			relevantAddress = truncateAddress(tx.FromAddress)
+		}
 	}
 
 	// Calculate fee in ETH
@@ -174,8 +205,8 @@ func extractTokenTransferAmount(logs []moralis_models.Log, walletAddress string)
 	return 0, "MATIC"
 }
 
-// extractNativeTransferAmount extracts amount from native transfers (POL/MATIC)
-func extractNativeTransferAmount(transfers []moralis_models.NativeTransfer, walletAddress string) (float64, string) {
+// extractNativeTransferAmountAndType extracts amount and transaction type from native transfers (POL/MATIC)
+func extractNativeTransferAmountAndType(transfers []moralis_models.NativeTransfer, walletAddress string) (float64, string, string) {
 	walletAddrLower := strings.ToLower(walletAddress)
 
 	for _, transfer := range transfers {
@@ -184,6 +215,14 @@ func extractNativeTransferAmount(transfers []moralis_models.NativeTransfer, wall
 		toAddr := strings.ToLower(transfer.ToAddress)
 
 		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// Determine transaction type using Direction field from Moralis
+			txType := "unknown"
+			if transfer.Direction == "send" {
+				txType = "send"
+			} else if transfer.Direction == "receive" {
+				txType = "receive"
+			}
+
 			// Use the pre-formatted value from Moralis (much more reliable)
 			if transfer.ValueFormatted != "" {
 				if amount, err := strconv.ParseFloat(transfer.ValueFormatted, 64); err == nil {
@@ -191,7 +230,7 @@ func extractNativeTransferAmount(transfers []moralis_models.NativeTransfer, wall
 					if tokenSymbol == "" {
 						tokenSymbol = "MATIC" // Default fallback
 					}
-					return amount, tokenSymbol
+					return amount, tokenSymbol, txType
 				}
 			}
 
@@ -208,17 +247,17 @@ func extractNativeTransferAmount(transfers []moralis_models.NativeTransfer, wall
 					if tokenSymbol == "" {
 						tokenSymbol = "MATIC" // Default fallback
 					}
-					return amount, tokenSymbol
+					return amount, tokenSymbol, txType
 				}
 			}
 		}
 	}
 
-	return 0, "MATIC"
+	return 0, "MATIC", "unknown"
 }
 
-// extractERC20TransferAmount extracts amount from ERC-20 transfers
-func extractERC20TransferAmount(transfers []moralis_models.ERC20Transfer, walletAddress string) (float64, string) {
+// extractERC20TransferAmountAndType extracts amount and transaction type from ERC-20 transfers
+func extractERC20TransferAmountAndType(transfers []moralis_models.ERC20Transfer, walletAddress string) (float64, string, string) {
 	walletAddrLower := strings.ToLower(walletAddress)
 
 	for _, transfer := range transfers {
@@ -227,6 +266,14 @@ func extractERC20TransferAmount(transfers []moralis_models.ERC20Transfer, wallet
 		toAddr := strings.ToLower(transfer.ToAddress)
 
 		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// Determine transaction type using Direction field from Moralis
+			txType := "unknown"
+			if transfer.Direction == "send" {
+				txType = "send"
+			} else if transfer.Direction == "receive" {
+				txType = "receive"
+			}
+
 			// Use the pre-formatted value from Moralis (much more reliable)
 			if transfer.ValueFormatted != "" {
 				if amount, err := strconv.ParseFloat(transfer.ValueFormatted, 64); err == nil {
@@ -234,7 +281,7 @@ func extractERC20TransferAmount(transfers []moralis_models.ERC20Transfer, wallet
 					if tokenSymbol == "" {
 						tokenSymbol = "TOKEN" // Default fallback
 					}
-					return amount, tokenSymbol
+					return amount, tokenSymbol, txType
 				}
 			}
 
@@ -262,17 +309,17 @@ func extractERC20TransferAmount(transfers []moralis_models.ERC20Transfer, wallet
 					if tokenSymbol == "" {
 						tokenSymbol = "TOKEN" // Default fallback
 					}
-					return amount, tokenSymbol
+					return amount, tokenSymbol, txType
 				}
 			}
 		}
 	}
 
-	return 0, "TOKEN"
+	return 0, "TOKEN", "unknown"
 }
 
-// extractNFTTransferAmount extracts amount from NFT transfers
-func extractNFTTransferAmount(transfers []moralis_models.NFTTransfer, walletAddress string) (float64, string) {
+// extractNFTTransferAmountAndType extracts amount and transaction type from NFT transfers
+func extractNFTTransferAmountAndType(transfers []moralis_models.NFTTransfer, walletAddress string) (float64, string, string) {
 	walletAddrLower := strings.ToLower(walletAddress)
 
 	for _, transfer := range transfers {
@@ -281,6 +328,14 @@ func extractNFTTransferAmount(transfers []moralis_models.NFTTransfer, walletAddr
 		toAddr := strings.ToLower(transfer.ToAddress)
 
 		if fromAddr == walletAddrLower || toAddr == walletAddrLower {
+			// Determine transaction type using Direction field from Moralis
+			txType := "unknown"
+			if transfer.Direction == "send" {
+				txType = "send"
+			} else if transfer.Direction == "receive" {
+				txType = "receive"
+			}
+
 			// For NFTs, we typically show the count/amount rather than value
 			amountBig := new(big.Int)
 			if _, ok := amountBig.SetString(transfer.Amount, 10); ok {
@@ -292,12 +347,12 @@ func extractNFTTransferAmount(transfers []moralis_models.NFTTransfer, walletAddr
 					tokenSymbol = "NFT"
 				}
 
-				return amount, tokenSymbol
+				return amount, tokenSymbol, txType
 			}
 		}
 	}
 
-	return 0, "NFT"
+	return 0, "NFT", "unknown"
 }
 
 // getTokenSymbolFromAddress returns a token symbol based on contract address
