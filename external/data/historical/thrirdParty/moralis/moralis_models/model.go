@@ -22,6 +22,7 @@ type HistoryTransaction struct {
 	BlockTimestamp    string           `json:"block_timestamp"`
 	BlockNumber       string           `json:"block_number"`
 	BlockHash         string           `json:"block_hash"`
+	TransactionFee    string           `json:"transaction_fee,omitempty"`
 	TransferIndex     []int            `json:"transfer_index,omitempty"`
 	Logs              []Log            `json:"logs,omitempty"`
 	NFTTransfers      []NFTTransfer    `json:"nft_transfers,omitempty"`

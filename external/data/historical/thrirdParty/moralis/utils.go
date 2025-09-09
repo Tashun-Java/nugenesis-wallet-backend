@@ -57,10 +57,10 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 			ethAmount, _ = ethValue.Float64()
 
 			// Manual type determination for legacy parsing
-			if tx.FromAddress == walletAddress {
+			if strings.EqualFold(tx.FromAddress, walletAddress) {
 				txType = "send"
 				relevantAddress = truncateAddress(tx.ToAddress)
-			} else if tx.ToAddress == walletAddress {
+			} else if strings.EqualFold(tx.ToAddress, walletAddress) {
 				txType = "receive"
 				relevantAddress = truncateAddress(tx.FromAddress)
 			}
@@ -68,10 +68,10 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 			// 5. Fallback to checking logs manually
 			ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
 			// Manual type determination for log parsing
-			if tx.FromAddress == walletAddress {
+			if strings.EqualFold(tx.FromAddress, walletAddress) {
 				txType = "send"
 				relevantAddress = truncateAddress(tx.ToAddress)
-			} else if tx.ToAddress == walletAddress {
+			} else if strings.EqualFold(tx.ToAddress, walletAddress) {
 				txType = "receive"
 				relevantAddress = truncateAddress(tx.FromAddress)
 			}
@@ -80,21 +80,22 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		// 6. Final fallback to logs
 		ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
 		// Manual type determination for log parsing
-		if tx.FromAddress == walletAddress {
+		if strings.EqualFold(tx.FromAddress, walletAddress) {
 			txType = "send"
 			relevantAddress = truncateAddress(tx.ToAddress)
-		} else if tx.ToAddress == walletAddress {
+		} else if strings.EqualFold(tx.ToAddress, walletAddress) {
 			txType = "receive"
 			relevantAddress = truncateAddress(tx.FromAddress)
 		}
 	}
 
-	// Calculate fee in ETH
-	//gasPrice, _ := strconv.ParseInt(tx.GasPrice, 10, 64)
-	//gasUsed, _ := strconv.ParseInt(tx.GasUsed, 10, 64)
-	//feeWei := big.NewInt(gasPrice * gasUsed)
-	//feeFlt := new(big.Float).SetInt(feeWei)
-	//feeAmount, _ := feeEth.Float64()
+	// Calculate fee from Moralis transaction_fee field
+	var feeAmount float64
+	if tx.TransactionFee != "" {
+		if fee, err := strconv.ParseFloat(tx.TransactionFee, 64); err == nil {
+			feeAmount = fee
+		}
+	}
 
 	// Determine status
 	status := "pending"
@@ -122,6 +123,7 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		ToAddress: truncateAddress(tx.ToAddress),
 		Date:      timestamp.Format("2006-01-02"),
 		Time:      timestamp.Format("15:04"),
+		Fee:       fmt.Sprintf("%.8f", feeAmount),
 		Hash:      truncateHash(tx.Hash),
 	}
 }
