@@ -21,7 +21,7 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 	var ethAmount float64
 	tokenSymbol := "MATIC" // Default to native token
 
-	// Priority order: Native transfers -> ERC-20 transfers -> NFT transfers -> Legacy parsing
+	// Priority order: Native transfers -> ERC-20 transfers -> NFT transfers -> Category/Summary based -> Legacy parsing
 
 	// 1. Check native transfers first (most reliable)
 	if len(tx.NativeTransfers) > 0 {
@@ -47,8 +47,25 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		} else if txType == "receive" {
 			relevantAddress = truncateAddress(tx.FromAddress)
 		}
+	} else if tx.Category != "" {
+		// 4. Use Moralis category and summary to determine transaction type
+		txType = determineTypeFromCategoryAndSummary(tx.Category, tx.Summary, tx.FromAddress, tx.ToAddress, walletAddress)
+		if txType == "send" {
+			relevantAddress = truncateAddress(tx.ToAddress)
+		} else if txType == "receive" {
+			relevantAddress = truncateAddress(tx.FromAddress)
+		} else {
+			// For contract interactions, use the contract address if available
+			if strings.EqualFold(tx.FromAddress, walletAddress) {
+				relevantAddress = truncateAddress(tx.ToAddress)
+			} else {
+				relevantAddress = truncateAddress(tx.FromAddress)
+			}
+		}
+		// For zero value contract interactions, keep amount as 0
+		ethAmount = 0
 	} else if tx.Value != "" {
-		// 4. Legacy: parse native value field directly and determine type manually
+		// 5. Legacy: parse native value field directly and determine type manually
 		valueWei := new(big.Int)
 		if _, ok := valueWei.SetString(tx.Value, 10); ok && valueWei.Cmp(big.NewInt(0)) > 0 {
 			valueFlt := new(big.Float).SetInt(valueWei)
@@ -65,7 +82,7 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 				relevantAddress = truncateAddress(tx.FromAddress)
 			}
 		} else {
-			// 5. Fallback to checking logs manually
+			// 6. Fallback to checking logs manually
 			ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
 			// Manual type determination for log parsing
 			if strings.EqualFold(tx.FromAddress, walletAddress) {
@@ -77,7 +94,7 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 			}
 		}
 	} else {
-		// 6. Final fallback to logs
+		// 7. Final fallback to logs
 		ethAmount, tokenSymbol = extractTokenTransferAmount(tx.Logs, walletAddress)
 		// Manual type determination for log parsing
 		if strings.EqualFold(tx.FromAddress, walletAddress) {
@@ -105,9 +122,21 @@ func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress
 		status = "failed"
 	}
 
-	// Determine category based on transaction data
+	// Determine category based on transaction data and Moralis category
 	category := "transfer"
-	if len(tx.InputData) > 2 && tx.InputData != "0x" {
+	if tx.Category != "" {
+		// Use Moralis category if available
+		switch strings.ToLower(tx.Category) {
+		case "contract interaction":
+			category = "contract_interaction"
+		case "send", "receive":
+			category = "transfer"
+		case "nft send", "nft receive":
+			category = "nft_transfer"
+		default:
+			category = strings.ToLower(tx.Category)
+		}
+	} else if len(tx.InputData) > 2 && tx.InputData != "0x" {
 		category = "contract_interaction"
 	}
 
@@ -374,4 +403,66 @@ func getTokenSymbolFromAddress(contractAddress string) string {
 	}
 
 	return "TOKEN" // Default fallback
+}
+
+// determineTypeFromCategoryAndSummary determines transaction type based on Moralis category and summary fields
+func determineTypeFromCategoryAndSummary(category, summary, fromAddress, toAddress, walletAddress string) string {
+	walletAddrLower := strings.ToLower(walletAddress)
+	fromAddrLower := strings.ToLower(fromAddress)
+	toAddrLower := strings.ToLower(toAddress)
+
+	// Handle specific categories from Moralis
+	switch strings.ToLower(category) {
+	case "send":
+		return "send"
+	case "receive":
+		return "receive"
+	case "contract interaction":
+		// For contract interactions, determine if it's send/receive based on wallet involvement
+		if fromAddrLower == walletAddrLower {
+			// Wallet is initiating the interaction - consider it a "send" to the contract
+			return "send"
+		} else if toAddrLower == walletAddrLower {
+			// Wallet is receiving from a contract interaction - consider it a "receive"
+			return "receive"
+		}
+		// If neither from nor to is the wallet, it's still a contract interaction
+		return "contract_interaction"
+	case "nft send":
+		return "send"
+	case "nft receive":
+		return "receive"
+	default:
+		// Analyze summary for additional context
+		summaryLower := strings.ToLower(summary)
+
+		// Check for common transaction patterns in summary
+		if strings.Contains(summaryLower, "sent") || strings.Contains(summaryLower, "transferred") {
+			if fromAddrLower == walletAddrLower {
+				return "send"
+			}
+		}
+
+		if strings.Contains(summaryLower, "received") {
+			if toAddrLower == walletAddrLower {
+				return "receive"
+			}
+		}
+
+		if strings.Contains(summaryLower, "signed") || strings.Contains(summaryLower, "contract") {
+			// Contract interaction initiated by the wallet
+			if fromAddrLower == walletAddrLower {
+				return "contract_interaction"
+			}
+		}
+
+		// Fallback: determine by wallet position
+		if fromAddrLower == walletAddrLower {
+			return "send"
+		} else if toAddrLower == walletAddrLower {
+			return "receive"
+		}
+	}
+
+	return "unknown"
 }
