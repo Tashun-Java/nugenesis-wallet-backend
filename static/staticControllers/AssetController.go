@@ -87,3 +87,31 @@ func (c *AssetController) GetCacheStats(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, response)
 }
+
+// GenerateAllIDs handles POST requests to generate IDs for all assets
+func (c *AssetController) GenerateAllIDs(ctx *gin.Context) {
+	err := c.assetService.GenerateAllIDs()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, staticModels.ErrorResponse{
+			Error: err.Error(),
+		})
+		return
+	}
+
+	stats := c.assetService.GetCacheStats()
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":        "All asset IDs generated successfully",
+		"total_mappings": stats["total_id_mappings"],
+		"next_id":        stats["next_id"],
+	})
+}
+
+// HealthCheck handles GET requests to check service health
+func (c *AssetController) HealthCheck(ctx *gin.Context) {
+	stats := c.assetService.GetCacheStats()
+	ctx.JSON(http.StatusOK, gin.H{
+		"status":      "healthy",
+		"cache_stats": stats,
+		"timestamp":   stats["last_update"],
+	})
+}

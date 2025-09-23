@@ -38,14 +38,16 @@ type Link struct {
 
 // AssetResponse represents the response structure for GetByCoinSymbol
 type AssetResponse struct {
-	Symbol     string `json:"symbol"`
-	Name       string `json:"name"`
-	Blockchain string `json:"blockchain"`
-	Address    string `json:"address,omitempty"`
-	LogoPath   string `json:"logo_path"`
-	Type       string `json:"type"`
-	Decimals   int    `json:"decimals"`
-	Status     string `json:"status"`
+	ID           string `json:"id"`
+	Symbol       string `json:"symbol"`
+	Name         string `json:"name"`
+	Blockchain   string `json:"blockchain"`
+	BlockchainID string `json:"blockchain_id,omitempty"`
+	Address      string `json:"address,omitempty"`
+	LogoPath     string `json:"logo_path"`
+	Type         string `json:"type"`
+	Decimals     int    `json:"decimals"`
+	Status       string `json:"status"`
 }
 
 // AssetsBySymbolResponse represents the response for GetByCoinSymbol endpoint
@@ -74,4 +76,25 @@ type CacheStatsResponse struct {
 // ErrorResponse represents error responses
 type ErrorResponse struct {
 	Error string `json:"error"`
+}
+
+// BlockchainResponse represents a blockchain with its ID
+type BlockchainResponse struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Symbol     string `json:"symbol,omitempty"`
+	IsTestnet  bool   `json:"is_testnet"`
+	HasAssets  bool   `json:"has_assets"`
+	AssetCount int    `json:"asset_count"`
+}
+
+// AllBlockchainsResponse represents the response for GetAllBlockchains endpoint
+type AllBlockchainsResponse struct {
+	Blockchains []BlockchainResponse `json:"blockchains"`
+	Count       int                  `json:"count"`
+}
+
+// BlockchainByIDResponse represents the response for GetBlockchainByID endpoint
+type BlockchainByIDResponse struct {
+	Blockchain BlockchainResponse `json:"blockchain"`
 }
