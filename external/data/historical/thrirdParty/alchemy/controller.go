@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/alchemy/alchemy_models"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -12,9 +13,11 @@ type Controller struct {
 	service *Service
 }
 
-func NewController() *Controller {
+func NewController(baseUrl string) *Controller {
+	AlchemyApiKey := os.Getenv("ALCHEMY_API_KEY")
+	controllerBaseURL := baseUrl
 	return &Controller{
-		service: NewService(),
+		service: NewService(&AlchemyApiKey, &controllerBaseURL),
 	}
 }
 

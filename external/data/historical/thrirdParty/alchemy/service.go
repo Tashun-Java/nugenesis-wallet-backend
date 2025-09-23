@@ -7,7 +7,6 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/alchemy/alchemy_models"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -17,23 +16,21 @@ const (
 )
 
 type Service struct {
+	apiKey  *string
+	baseURL *string
 	client  *http.Client
-	baseURL string
-	apiKey  string
 }
 
-func NewService() *Service {
+func NewService(apiKey *string, baseURL *string) *Service {
 	return &Service{
-		client: &http.Client{
-			Timeout: Timeout,
-		},
-		baseURL: BaseURL,
-		apiKey:  os.Getenv("ALCHEMY_API_KEY"),
+		apiKey:  apiKey,
+		baseURL: baseURL,
+		client:  &http.Client{},
 	}
 }
 
 func (s *Service) GetTokensByAddress(addresses []alchemy_models.AddressRequest, limit *int) (*alchemy_models.TokensByAddressResponse, error) {
-	url := fmt.Sprintf("%s/%s/assets/tokens/by-address", s.baseURL, s.apiKey)
+	url := fmt.Sprintf("%s/%s/assets/tokens/by-address", *s.baseURL, *s.apiKey)
 
 	requestBody := alchemy_models.TokensByAddressRequest{
 		Addresses: addresses,
@@ -83,7 +80,7 @@ func (s *Service) GetTokensByAddress(addresses []alchemy_models.AddressRequest, 
 }
 
 func (s *Service) GetTransactionHistory(addresses []alchemy_models.AddressRequest, before *string, after *string, limit *int) (*alchemy_models.TransactionHistoryResponse, error) {
-	url := fmt.Sprintf("%s/%s/transactions/history/by-address", s.baseURL, s.apiKey)
+	url := fmt.Sprintf("https://api.g.alchemy.com/data/v1/%s/transactions/history/by-address", *s.apiKey)
 
 	requestBody := alchemy_models.TransactionHistoryRequest{
 		Addresses: addresses,
@@ -133,3 +130,5 @@ func (s *Service) GetTransactionHistory(addresses []alchemy_models.AddressReques
 
 	return &response, nil
 }
+
+//func (s *Service) GetSolanaHistory	(addresses []alchemy_models.AddressRequest, limit *int) (*alchemy_models.TokensByAddressResponse, error) {
