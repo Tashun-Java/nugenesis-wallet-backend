@@ -41,8 +41,8 @@ func NewAssetService() *AssetService {
 		blockchainMap: make(map[string]general.CoinType),
 		nextID:        1,
 		cacheTTL:      30 * time.Minute, // Cache for 30 minutes
-		assetsPath:    "assets/blockchains",
-		idMappingFile: "assets/id_mappings.json",
+		assetsPath:    "./assets/blockchains",
+		idMappingFile: "./assets/id_mappings.json",
 	}
 	service.initializeBlockchainMapping()
 	service.loadIDMappings()
