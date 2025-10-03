@@ -63,6 +63,12 @@ type AllSymbolsResponse struct {
 	Count   int      `json:"count"`
 }
 
+// AllAssetsResponse represents the response for GetAllAssets endpoint
+type AllAssetsResponse struct {
+	Assets []AssetResponse `json:"assets"`
+	Count  int             `json:"count"`
+}
+
 // RefreshResponse represents the response for ForceRefresh endpoint
 type RefreshResponse struct {
 	Message string `json:"message"`

@@ -64,7 +64,7 @@ func (s *AssetService) initializeBlockchainMapping() {
 	s.blockchainMap["manta"] = general.MantaPacific
 	s.blockchainMap["meter"] = general.Meter
 	s.blockchainMap["oasis"] = general.Oasis
-	
+
 	s.blockchainMap["scroll"] = general.Scroll
 	s.blockchainMap["smartchain"] = general.SmartChain
 	s.blockchainMap["solana"] = general.Solana
@@ -343,6 +343,24 @@ func (s *AssetService) GetAllSymbols() ([]string, error) {
 	}
 
 	return symbols, nil
+}
+
+// GetAllAssets returns all assets with full details
+func (s *AssetService) GetAllAssets() ([]staticModels.AssetResponse, error) {
+	// Refresh cache if needed
+	if err := s.refreshCacheIfNeeded(); err != nil {
+		return nil, fmt.Errorf("failed to refresh asset cache: %v", err)
+	}
+
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	var allAssets []staticModels.AssetResponse
+	for _, assets := range s.assetCache {
+		allAssets = append(allAssets, assets...)
+	}
+
+	return allAssets, nil
 }
 
 // ForceRefresh forces a cache refresh

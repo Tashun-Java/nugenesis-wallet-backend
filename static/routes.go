@@ -30,6 +30,7 @@ func RegisterRoutes(rg *gin.RouterGroup) {
 		assetGroup := staticGroup.Group("/assets")
 		{
 			assetGroup.GET("/symbols", assetController.GetAllSymbols)
+			assetGroup.GET("/", assetController.GetAllAssets)
 			assetGroup.GET("/symbol/:symbol", assetController.GetByCoinSymbol)
 			assetGroup.POST("/refresh", assetController.ForceRefresh)
 			assetGroup.POST("/generate-ids", assetController.GenerateAllIDs)

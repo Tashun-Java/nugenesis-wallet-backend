@@ -63,6 +63,23 @@ func (c *AssetController) GetAllSymbols(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+// GetAllAssets handles GET requests to get all assets with full details
+func (c *AssetController) GetAllAssets(ctx *gin.Context) {
+	assets, err := c.assetService.GetAllAssets()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, staticModels.ErrorResponse{
+			Error: err.Error(),
+		})
+		return
+	}
+
+	response := staticModels.AllAssetsResponse{
+		Assets: assets,
+		Count:  len(assets),
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
 // ForceRefresh handles POST requests to force cache refresh
 func (c *AssetController) ForceRefresh(ctx *gin.Context) {
 	err := c.assetService.ForceRefresh()
