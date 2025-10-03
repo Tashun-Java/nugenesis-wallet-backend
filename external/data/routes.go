@@ -101,29 +101,7 @@ func initControllers() {
 			general.Sei:             "ALCHEMY_SEI_RPC_BASE_URL",
 			general.Scroll:          "ALCHEMY_SCROLL_RPC_BASE_URL",
 			general.OpBNB:           "ALCHEMY_OPBNB_RPC_BASE_URL",
-			general.Sepolia:         "ALCHEMY_SEPOLIA_RPC_BASE_URL",
-			// Testnet mappings (mainnet + 160)
-			general.EthereumTest:        "ALCHEMY_ETHEREUM_TEST_RPC_BASE_URL",
-			general.OptimismTest:        "ALCHEMY_OPTIMISM_TEST_RPC_BASE_URL",
-			general.PolygonTest:         "ALCHEMY_POLYGON_TEST_RPC_BASE_URL",
-			general.PolygonzkEVMTest:    "ALCHEMY_POLYGONZK_TEST_RPC_BASE_URL",
-			general.ArbitrumTest:        "ALCHEMY_ARBITRUM_TEST_RPC_BASE_URL",
-			general.ZetaEVMTest:         "ALCHEMY_ZETA_TEST_RPC_BASE_URL",
-			general.MantleTest:          "ALCHEMY_MANTLE_TEST_RPC_BASE_URL",
-			general.BlastTest:           "ALCHEMY_BLAST_TEST_RPC_BASE_URL",
-			general.LineaTest:           "ALCHEMY_LINEA_TEST_RPC_BASE_URL",
-			general.RoninTest:           "ALCHEMY_RONIN_TEST_RPC_BASE_URL",
-			general.RootstockTest:       "ALCHEMY_ROOTSTOCK_TEST_RPC_BASE_URL",
-			general.ArbitrumNovaTest:    "ALCHEMY_ARBITRUMNOVA_TEST_RPC_BASE_URL",
-			general.BaseTest:            "ALCHEMY_BASE_TEST_RPC_BASE_URL",
-			general.AvalancheCChainTest: "ALCHEMY_AVALANCHE_TEST_RPC_BASE_URL",
-			general.BinanceTest:         "ALCHEMY_BINANCE_TEST_RPC_BASE_URL",
-			general.CeloTest:            "ALCHEMY_CELO_TEST_RPC_BASE_URL",
-			general.SonicTest:           "ALCHEMY_SONIC_TEST_RPC_BASE_URL",
-			general.SeiTest:             "ALCHEMY_SEI_TEST_RPC_BASE_URL",
-			general.ScrollTest:          "ALCHEMY_SCROLL_TEST_RPC_BASE_URL",
-			general.OpBNBTest:           "ALCHEMY_OPBNB_TEST_RPC_BASE_URL",
-			general.SepoliaTest:         "ALCHEMY_SEPOLIA_TEST_RPC_BASE_URL",
+			
 		}
 
 		for coinType, envVar := range envMap {

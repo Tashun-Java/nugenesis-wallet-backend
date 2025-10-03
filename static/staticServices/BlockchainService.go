@@ -191,12 +191,7 @@ func (s *BlockchainService) initializeBlockchainMapping() {
 	s.blockchainMap["pactus"] = general.Pactus
 	s.blockchainMap["sonic"] = general.Sonic
 	s.blockchainMap["polymesh"] = general.Polymesh
-	s.blockchainMap["sepolia"] = general.Sepolia
-
-	// Test networks (adding key test networks for completeness)
-	s.blockchainMap["optimismgoerli"] = general.OptimismTest
-	s.blockchainMap["goerli"] = general.EthereumTest
-	s.blockchainMap["mumbai"] = general.PolygonTest
+	
 }
 
 // GetBlockchainID returns the CoinType ID for a given blockchain name
