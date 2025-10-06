@@ -363,6 +363,59 @@ func (s *AssetService) GetAllAssets() ([]staticModels.AssetResponse, error) {
 	return allAssets, nil
 }
 
+// GetAllAssetsWithPagination returns all assets with pagination and optional blockchain filter
+func (s *AssetService) GetAllAssetsWithPagination(limit, offset int, blockchainID string) ([]staticModels.AssetResponse, int, error) {
+	// Refresh cache if needed
+	if err := s.refreshCacheIfNeeded(); err != nil {
+		return nil, 0, fmt.Errorf("failed to refresh asset cache: %v", err)
+	}
+
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	var allAssets []staticModels.AssetResponse
+	for _, assets := range s.assetCache {
+		allAssets = append(allAssets, assets...)
+	}
+
+	// Filter by blockchain ID if provided
+	if blockchainID != "" {
+		var filteredAssets []staticModels.AssetResponse
+		for _, asset := range allAssets {
+			if asset.BlockchainID == blockchainID {
+				filteredAssets = append(filteredAssets, asset)
+			}
+		}
+		allAssets = filteredAssets
+	}
+
+	// Sort assets for consistent ordering (by ID)
+	for i := 0; i < len(allAssets)-1; i++ {
+		for j := i + 1; j < len(allAssets); j++ {
+			if allAssets[i].ID > allAssets[j].ID {
+				allAssets[i], allAssets[j] = allAssets[j], allAssets[i]
+			}
+		}
+	}
+
+	total := len(allAssets)
+
+	// Apply pagination
+	start := offset
+	if start > total {
+		start = total
+	}
+
+	end := start + limit
+	if end > total {
+		end = total
+	}
+
+	paginatedAssets := allAssets[start:end]
+
+	return paginatedAssets, total, nil
+}
+
 // ForceRefresh forces a cache refresh
 func (s *AssetService) ForceRefresh() error {
 	return s.loadAllAssets()

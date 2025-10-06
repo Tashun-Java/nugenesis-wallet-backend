@@ -67,6 +67,9 @@ type AllSymbolsResponse struct {
 type AllAssetsResponse struct {
 	Assets []AssetResponse `json:"assets"`
 	Count  int             `json:"count"`
+	Total  int             `json:"total"`
+	Limit  int             `json:"limit"`
+	Offset int             `json:"offset"`
 }
 
 // RefreshResponse represents the response for ForceRefresh endpoint
