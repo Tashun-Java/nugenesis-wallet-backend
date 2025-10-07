@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -389,14 +390,20 @@ func (s *AssetService) GetAllAssetsWithPagination(limit, offset int, blockchainI
 		allAssets = filteredAssets
 	}
 
-	// Sort assets for consistent ordering (by ID)
-	for i := 0; i < len(allAssets)-1; i++ {
-		for j := i + 1; j < len(allAssets); j++ {
-			if allAssets[i].ID > allAssets[j].ID {
-				allAssets[i], allAssets[j] = allAssets[j], allAssets[i]
-			}
+	// Sort assets for consistent ordering (by ID) using efficient sort
+	sort.Slice(allAssets, func(i, j int) bool {
+		// Convert IDs to integers for numeric comparison
+		idI, errI := strconv.Atoi(allAssets[i].ID)
+		idJ, errJ := strconv.Atoi(allAssets[j].ID)
+
+		// If both are valid numbers, compare numerically
+		if errI == nil && errJ == nil {
+			return idI < idJ
 		}
-	}
+
+		// Otherwise fall back to string comparison
+		return allAssets[i].ID < allAssets[j].ID
+	})
 
 	total := len(allAssets)
 
