@@ -65,6 +65,7 @@ func (s *AssetService) initializeBlockchainMapping() {
 	s.blockchainMap["manta"] = general.MantaPacific
 	s.blockchainMap["meter"] = general.Meter
 	s.blockchainMap["oasis"] = general.Oasis
+	s.blockchainMap["bitcoin"] = general.Bitcoin
 
 	s.blockchainMap["scroll"] = general.Scroll
 	s.blockchainMap["smartchain"] = general.SmartChain
