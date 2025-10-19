@@ -183,24 +183,26 @@ func (s *AssetService) loadBlockchainAssets(blockchainPath, blockchainName strin
 				logoExists = true
 			}
 
-			nativeAsset := staticModels.AssetResponse{
-				ID:         s.getOrCreateAssetID(blockchainName, "", blockchainInfo.Symbol),
-				Symbol:     blockchainInfo.Symbol,
-				Name:       blockchainInfo.Name,
-				Blockchain: blockchainName,
-				Address:    "", // Native tokens don't have contract addresses
-				Type:       blockchainInfo.Type,
-				Decimals:   blockchainInfo.Decimals,
-				Status:     blockchainInfo.Status,
+			// Skip if blockchain ID mapping doesn't exist
+			blockchainID := s.getBlockchainID(blockchainName)
+			if blockchainID == "" {
+				return assets, nil
 			}
 
-			// Add blockchain ID if mapping exists
-			if blockchainID := s.getBlockchainID(blockchainName); blockchainID != "" {
-				nativeAsset.BlockchainID = blockchainID
+			nativeAsset := staticModels.AssetResponse{
+				ID:           s.getOrCreateAssetID(blockchainName, "", blockchainInfo.Symbol),
+				Symbol:       blockchainInfo.Symbol,
+				Name:         blockchainInfo.Name,
+				Blockchain:   blockchainName,
+				BlockchainID: blockchainID,
+				Address:      "", // Native tokens don't have contract addresses
+				Type:         blockchainInfo.Type,
+				Decimals:     blockchainInfo.Decimals,
+				Status:       blockchainInfo.Status,
 			}
 
 			if logoExists {
-				nativeAsset.LogoPath = fmt.Sprintf("/api/static/assetsLogo/blockchains/%s/info/logo.png", blockchainName)
+				nativeAsset.LogoPath = fmt.Sprintf("/static/assetsLogo/blockchains/%s/info/logo.png", blockchainName)
 			}
 
 			assets = append(assets, nativeAsset)
@@ -210,6 +212,12 @@ func (s *AssetService) loadBlockchainAssets(blockchainPath, blockchainName strin
 	// Load token assets
 	assetsDir := filepath.Join(blockchainPath, "assets")
 	if entries, err := ioutil.ReadDir(assetsDir); err == nil {
+		// Get blockchain ID once to check if we should process tokens
+		blockchainID := s.getBlockchainID(blockchainName)
+		if blockchainID == "" {
+			return assets, nil
+		}
+
 		for _, entry := range entries {
 			if entry.IsDir() {
 				assetPath := filepath.Join(assetsDir, entry.Name())
@@ -226,23 +234,19 @@ func (s *AssetService) loadBlockchainAssets(blockchainPath, blockchainName strin
 						}
 
 						tokenAsset := staticModels.AssetResponse{
-							ID:         s.getOrCreateAssetID(blockchainName, entry.Name(), assetInfo.Symbol),
-							Symbol:     assetInfo.Symbol,
-							Name:       assetInfo.Name,
-							Blockchain: blockchainName,
-							Address:    entry.Name(), // Directory name is the contract address/asset ID
-							Type:       assetInfo.Type,
-							Decimals:   assetInfo.Decimals,
-							Status:     assetInfo.Status,
-						}
-
-						// Add blockchain ID if mapping exists
-						if blockchainID := s.getBlockchainID(blockchainName); blockchainID != "" {
-							tokenAsset.BlockchainID = blockchainID
+							ID:           s.getOrCreateAssetID(blockchainName, entry.Name(), assetInfo.Symbol),
+							Symbol:       assetInfo.Symbol,
+							Name:         assetInfo.Name,
+							Blockchain:   blockchainName,
+							BlockchainID: blockchainID,
+							Address:      entry.Name(), // Directory name is the contract address/asset ID
+							Type:         assetInfo.Type,
+							Decimals:     assetInfo.Decimals,
+							Status:       assetInfo.Status,
 						}
 
 						if logoExists {
-							tokenAsset.LogoPath = fmt.Sprintf("/api/static/assetsLogo/blockchains/%s/assets/%s/logo.png", blockchainName, entry.Name())
+							tokenAsset.LogoPath = fmt.Sprintf("/static/assetsLogo/blockchains/%s/assets/%s/logo.png", blockchainName, entry.Name())
 						}
 
 						assets = append(assets, tokenAsset)
@@ -273,6 +277,12 @@ func (s *AssetService) loadAllAssets() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			blockchainName := entry.Name()
+
+			// Skip if blockchain ID mapping doesn't exist
+			if s.getBlockchainID(blockchainName) == "" {
+				continue
+			}
+
 			blockchainPath := filepath.Join(s.assetsPath, blockchainName)
 
 			assets, err := s.loadBlockchainAssets(blockchainPath, blockchainName)
@@ -468,6 +478,12 @@ func (s *AssetService) GenerateAllIDs() error {
 	for _, entry := range entries {
 		if entry.IsDir() {
 			blockchainName := entry.Name()
+
+			// Skip if blockchain ID mapping doesn't exist
+			if s.getBlockchainID(blockchainName) == "" {
+				continue
+			}
+
 			blockchainPath := filepath.Join(s.assetsPath, blockchainName)
 
 			// Load native token info

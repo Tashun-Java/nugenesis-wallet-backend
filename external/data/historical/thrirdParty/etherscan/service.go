@@ -42,6 +42,7 @@ func (s *Service) GetAddressInfo(address string, limit, offset int) (*etherscan_
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Etherscan response: %w", err)
 	}
+	fmt.Printf("Etherscan response body: %s\n", string(body))
 
 	var apiResp etherscan_models.AddressResponse
 	if err := json.Unmarshal(body, &apiResp); err != nil {
