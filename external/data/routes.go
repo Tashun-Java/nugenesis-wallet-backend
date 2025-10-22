@@ -44,8 +44,8 @@ func (cp *ControllerPool) GetBlockstreamController() *blockstream.Controller {
 	return cp.blockstreamController
 }
 
-func (cp *ControllerPool) GetEthereumController() *etherscan.Controller {
-	return cp.ethereumController
+func (cp *ControllerPool) GetEthereumController() *alchemy.Controller {
+	return cp.alchemyHistoricControllers[general.Ethereum]
 }
 
 func (cp *ControllerPool) GetSolanaController() *helius.Controller {
@@ -101,7 +101,6 @@ func initControllers() {
 			general.Sei:             "ALCHEMY_SEI_RPC_BASE_URL",
 			general.Scroll:          "ALCHEMY_SCROLL_RPC_BASE_URL",
 			general.OpBNB:           "ALCHEMY_OPBNB_RPC_BASE_URL",
-			
 		}
 
 		for coinType, envVar := range envMap {
@@ -142,7 +141,7 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 		case general.Bitcoin:
 			controllerPool.GetBlockstreamController().GetAddressTransactions(ctx)
 		case general.Ethereum:
-			controllerPool.GetEthereumController().GetAddressInfo(ctx)
+			controllerPool.GetEthereumController().GetAssetTransfers(ctx)
 		case general.Solana:
 			controllerPool.GetSolanaController().GetAddressInfo(ctx)
 		case general.Polygon:
