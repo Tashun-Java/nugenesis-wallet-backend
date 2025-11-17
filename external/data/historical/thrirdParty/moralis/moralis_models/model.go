@@ -87,3 +87,36 @@ type Log struct {
 	Topic2           string `json:"topic2,omitempty"`
 	Topic3           string `json:"topic3,omitempty"`
 }
+
+// WalletTokenBalancesResponse represents the response from Moralis /wallets/{address}/tokens endpoint
+type WalletTokenBalancesResponse struct {
+	Cursor  string         `json:"cursor,omitempty"`
+	Page    int            `json:"page,omitempty"`
+	Result  []TokenBalance `json:"result"`
+	HasMore bool           `json:"hasMore,omitempty"`
+}
+
+// TokenBalance represents a single token balance in the wallet
+type TokenBalance struct {
+	TokenAddress                    string   `json:"token_address"`
+	Name                            string   `json:"name"`
+	Symbol                          string   `json:"symbol"`
+	Logo                            string   `json:"logo,omitempty"`
+	Thumbnail                       string   `json:"thumbnail,omitempty"`
+	Decimals                        int      `json:"decimals"`
+	Balance                         string   `json:"balance"`
+	BalanceFormatted                string   `json:"balance_formatted"`
+	PossibleSpam                    bool     `json:"possible_spam"`
+	VerifiedContract                bool     `json:"verified_contract"`
+	TotalSupply                     string   `json:"total_supply,omitempty"`
+	TotalSupplyFormatted            string   `json:"total_supply_formatted,omitempty"`
+	PercentageRelativeToTotalSupply *float64 `json:"percentage_relative_to_total_supply,omitempty"`
+	SecurityScore                   *int     `json:"security_score,omitempty"`
+	UsdPrice                        *float64 `json:"usd_price,omitempty"`
+	UsdPrice24hrPercentChange       *float64 `json:"usd_price_24hr_percent_change,omitempty"`
+	UsdPrice24hrUsdChange           *float64 `json:"usd_price_24hr_usd_change,omitempty"`
+	UsdValue                        *float64 `json:"usd_value,omitempty"`
+	UsdValue24hrUsdChange           *float64 `json:"usd_value_24hr_usd_change,omitempty"`
+	NativeToken                     *bool    `json:"native_token,omitempty"`
+	PortfolioPercentage             *float64 `json:"portfolio_percentage,omitempty"`
+}

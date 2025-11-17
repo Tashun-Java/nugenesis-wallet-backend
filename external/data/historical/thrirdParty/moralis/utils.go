@@ -466,3 +466,68 @@ func determineTypeFromCategoryAndSummary(category, summary, fromAddress, toAddre
 
 	return "unknown"
 }
+
+// MapTokenBalanceToStandard converts Moralis token balance to standard wallet token balance format
+func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string) models.WalletTokenBalance {
+	// Determine if this is a native token
+	isNativeToken := false
+	if token.NativeToken != nil {
+		isNativeToken = *token.NativeToken
+	}
+
+	// Parse balance value
+	balance := "0"
+	if token.BalanceFormatted != "" {
+		balance = token.BalanceFormatted
+	}
+
+	// Parse USD value
+	usdValue := 0.0
+	if token.UsdValue != nil {
+		usdValue = *token.UsdValue
+	}
+
+	// Parse USD price
+	usdPrice := 0.0
+	if token.UsdPrice != nil {
+		usdPrice = *token.UsdPrice
+	}
+
+	// Parse 24h price change percentage
+	priceChange24h := 0.0
+	if token.UsdPrice24hrPercentChange != nil {
+		priceChange24h = *token.UsdPrice24hrPercentChange
+	}
+
+	// Parse portfolio percentage
+	portfolioPercentage := 0.0
+	if token.PortfolioPercentage != nil {
+		portfolioPercentage = *token.PortfolioPercentage
+	}
+
+	// Parse security score
+	securityScore := 0
+	if token.SecurityScore != nil {
+		securityScore = *token.SecurityScore
+	}
+
+	return models.WalletTokenBalance{
+		TokenAddress:        token.TokenAddress,
+		Name:                token.Name,
+		Symbol:              token.Symbol,
+		Logo:                token.Logo,
+		Thumbnail:           token.Thumbnail,
+		Decimals:            strconv.Itoa(token.Decimals),
+		Balance:             balance,
+		BalanceRaw:          token.Balance,
+		NativeToken:         isNativeToken,
+		VerifiedContract:    token.VerifiedContract,
+		PossibleSpam:        token.PossibleSpam,
+		UsdPrice:            usdPrice,
+		UsdValue:            usdValue,
+		UsdPrice24hrChange:  priceChange24h,
+		PortfolioPercentage: portfolioPercentage,
+		SecurityScore:       securityScore,
+		Chain:               chain,
+	}
+}

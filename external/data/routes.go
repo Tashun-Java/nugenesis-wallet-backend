@@ -162,6 +162,20 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 	rg.GET("/tokens", func(ctx *gin.Context) {
 		controllerPool.GetAlchemyTokenController().GetTokensByAddressQuery(ctx)
 	})
+
+	// Wallet token balances endpoint with multi-chain support
+	rg.GET("/balances/:address", func(ctx *gin.Context) {
+		blockchainID := ctx.Param("id")
+
+		// Support multi-chain token balances
+		switch general.CoinType(blockchainID) {
+		case general.Polygon:
+			controllerPool.GetPolygonController().GetWalletTokenBalances(ctx)
+		default:
+			// For other chains, you can add support for different providers
+			ctx.JSON(400, gin.H{"error": "Token balances not yet supported for this blockchain"})
+		}
+	})
 }
 
 func RegisterRPCRoutes(rg *gin.RouterGroup) {
