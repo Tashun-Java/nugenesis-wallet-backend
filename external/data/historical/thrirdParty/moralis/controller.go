@@ -5,19 +5,52 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis/moralis_models"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"net/http"
+	"os"
 	"strconv"
 )
 
+// TokenIDServiceGetter is a function type for getting the token ID service
+// This allows us to avoid circular dependencies
+type TokenIDServiceGetter func() TokenIDServiceInterface
+
 type Controller struct {
-	service *Service
-	chain   string
+	service              *Service
+	chain                string
+	tokenIDServiceGetter TokenIDServiceGetter
 }
 
 func NewController(chain string) *Controller {
 	return &Controller{
-		service: NewService(),
-		chain:   chain,
+		service:              NewService(),
+		chain:                chain,
+		tokenIDServiceGetter: nil, // Will be set later
 	}
+}
+
+// SetTokenIDServiceGetter sets the token ID service getter
+func (c *Controller) SetTokenIDServiceGetter(getter TokenIDServiceGetter) {
+	c.tokenIDServiceGetter = getter
+}
+
+// shouldFilterTokensWithoutID checks if tokens without token_id should be filtered
+func shouldFilterTokensWithoutID() bool {
+	filterValue := os.Getenv("FILTER_TOKENS_WITHOUT_ID")
+	return filterValue == "true" || filterValue == "1"
+}
+
+// filterBalancesByTokenID filters out tokens that don't have a token_id
+func filterBalancesByTokenID(balances []models.WalletTokenBalance) []models.WalletTokenBalance {
+	if !shouldFilterTokensWithoutID() {
+		return balances
+	}
+
+	filtered := make([]models.WalletTokenBalance, 0)
+	for _, balance := range balances {
+		if balance.TokenID != "" {
+			filtered = append(filtered, balance)
+		}
+	}
+	return filtered
 }
 
 func (c *Controller) GetWalletHistory(ctx *gin.Context) {
@@ -87,12 +120,21 @@ func (c *Controller) GetWalletTokenBalances(ctx *gin.Context) {
 		return
 	}
 
+	// Get token ID service
+	var tokenIDService TokenIDServiceInterface
+	if c.tokenIDServiceGetter != nil {
+		tokenIDService = c.tokenIDServiceGetter()
+	}
+
 	// Map Moralis token balances to standard format
 	var mappedBalances []models.WalletTokenBalance
 	for _, token := range balances.Result {
-		mappedBalance := MapTokenBalanceToStandard(token, chain)
+		mappedBalance := MapTokenBalanceToStandard(token, chain, tokenIDService)
 		mappedBalances = append(mappedBalances, mappedBalance)
 	}
+
+	// Filter balances by token_id if environment variable is set
+	mappedBalances = filterBalancesByTokenID(mappedBalances)
 
 	// Prepare response with pagination info
 	response := models.WalletTokenBalancesResponse{
@@ -133,6 +175,12 @@ func (c *Controller) GetSolanaWalletTokenBalances(ctx *gin.Context) {
 		return
 	}
 
+	// Get token ID service
+	var tokenIDService TokenIDServiceInterface
+	if c.tokenIDServiceGetter != nil {
+		tokenIDService = c.tokenIDServiceGetter()
+	}
+
 	// Map native SOL balance to standard format
 	var mappedBalances []models.WalletTokenBalance
 
@@ -145,14 +193,17 @@ func (c *Controller) GetSolanaWalletTokenBalances(ctx *gin.Context) {
 		Name:      "Solana",
 		Symbol:    "SOL",
 	}
-	mappedNative := MapSolanaTokenToStandard(nativeToken, "solana", true)
+	mappedNative := MapSolanaTokenToStandard(nativeToken, "solana", true, tokenIDService)
 	mappedBalances = append(mappedBalances, mappedNative)
 
 	// Add SPL tokens
 	for _, token := range *tokenBalances {
-		mappedBalance := MapSolanaTokenToStandard(token, "solana", false)
+		mappedBalance := MapSolanaTokenToStandard(token, "solana", false, tokenIDService)
 		mappedBalances = append(mappedBalances, mappedBalance)
 	}
+
+	// Filter balances by token_id if environment variable is set
+	mappedBalances = filterBalancesByTokenID(mappedBalances)
 
 	// Prepare response
 	response := models.WalletTokenBalancesResponse{

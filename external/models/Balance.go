@@ -36,6 +36,7 @@ type GetTokenBalancesControllerResponse struct {
 // WalletTokenBalance represents a comprehensive token balance with fiat values
 type WalletTokenBalance struct {
 	TokenAddress        string  `json:"token_address"`
+	TokenID             string  `json:"token_id,omitempty"`
 	Name                string  `json:"name"`
 	Symbol              string  `json:"symbol"`
 	Logo                string  `json:"logo,omitempty"`

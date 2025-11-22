@@ -79,13 +79,31 @@ func initControllers() {
 	}
 
 	controllerPool.once.Do(func() {
+		// Initialize token ID service
+		tokenIDService := GetTokenIDService()
+		if err := tokenIDService.LoadMappings("assets/id_mappings.json"); err != nil {
+			// Log the error but don't fail initialization
+			// Token IDs will just be empty if the file can't be loaded
+			println("Warning: Failed to load token ID mappings:", err.Error())
+		}
+
 		controllerPool.bitcoinController = blockchaininfo.NewController()
 		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
 		controllerPool.solanaController = helius.NewController()
+
+		// Create Moralis controllers
 		controllerPool.polygonController = moralis.NewController("polygon")
 		controllerPool.ethereumMoralisController = moralis.NewController("eth")
 		controllerPool.solanaMoralisController = moralis.NewController("solana")
+
+		// Set token ID service getter for Moralis controllers
+		tokenIDServiceGetter := func() moralis.TokenIDServiceInterface {
+			return GetTokenIDService()
+		}
+		controllerPool.polygonController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.ethereumMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.solanaMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{

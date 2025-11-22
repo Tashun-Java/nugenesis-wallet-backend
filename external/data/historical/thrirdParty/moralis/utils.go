@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+// TokenIDServiceInterface defines the interface for token ID lookup
+type TokenIDServiceInterface interface {
+	GetTokenID(chain, tokenAddress string) string
+	GetTokenIDForNative(chain, symbol string) string
+}
+
 // MapHistoryToTransaction converts Moralis history transaction to standard transaction format
 func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress string) models.Transaction {
 	timestamp, _ := time.Parse(time.RFC3339, tx.BlockTimestamp)
@@ -468,7 +474,7 @@ func determineTypeFromCategoryAndSummary(category, summary, fromAddress, toAddre
 }
 
 // MapTokenBalanceToStandard converts Moralis token balance to standard wallet token balance format
-func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string) models.WalletTokenBalance {
+func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
 	// Determine if this is a native token
 	isNativeToken := false
 	if token.NativeToken != nil {
@@ -511,8 +517,21 @@ func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string) 
 		securityScore = *token.SecurityScore
 	}
 
+	// Lookup token ID
+	tokenID := ""
+	if tokenIDService != nil {
+		if isNativeToken {
+			// Use symbol-based lookup for native tokens
+			tokenID = tokenIDService.GetTokenIDForNative(chain, token.Symbol)
+		} else {
+			// Use address-based lookup for non-native tokens
+			tokenID = tokenIDService.GetTokenID(chain, token.TokenAddress)
+		}
+	}
+
 	return models.WalletTokenBalance{
 		TokenAddress:        token.TokenAddress,
+		TokenID:             tokenID,
 		Name:                token.Name,
 		Symbol:              token.Symbol,
 		Logo:                token.Logo,
@@ -533,7 +552,7 @@ func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string) 
 }
 
 // MapSolanaTokenToStandard converts Moralis Solana token balance to standard wallet token balance format
-func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, isNative bool) models.WalletTokenBalance {
+func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, isNative bool, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
 	// Parse decimals
 	decimals := "9" // Default for SOL
 	if token.Decimals != "" {
@@ -546,8 +565,21 @@ func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, is
 		balance = "0"
 	}
 
+	// Lookup token ID
+	tokenID := ""
+	if tokenIDService != nil {
+		if isNative {
+			// Use symbol-based lookup for native tokens
+			tokenID = tokenIDService.GetTokenIDForNative(chain, token.Symbol)
+		} else {
+			// Use address-based lookup for SPL tokens
+			tokenID = tokenIDService.GetTokenID(chain, token.Mint)
+		}
+	}
+
 	return models.WalletTokenBalance{
 		TokenAddress:        token.Mint,
+		TokenID:             tokenID,
 		Name:                token.Name,
 		Symbol:              token.Symbol,
 		Logo:                token.Logo,
