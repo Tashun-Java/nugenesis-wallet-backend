@@ -49,11 +49,18 @@ func (s *Service) GetWalletHistory(address string, chain string, cursor string, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to request Moralis API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			if err != nil {
+				fmt.Printf("failed to close response body: %v\n", err)
+			}
+		}
+	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Moralis API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("moralis API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -106,12 +113,17 @@ func (s *Service) GetWalletTokenBalances(address string, chain string, cursor st
 	if err != nil {
 		return nil, fmt.Errorf("failed to request Moralis API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}(resp.Body)
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Moralis API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("moralis API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Read response body
@@ -158,12 +170,17 @@ func (s *Service) GetSolanaTokenBalances(address string, network string) (*moral
 	if err != nil {
 		return nil, fmt.Errorf("failed to request Moralis Solana API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}(resp.Body)
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Moralis Solana API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("moralis Solana API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Read response body
@@ -209,12 +226,17 @@ func (s *Service) GetSolanaBalance(address string, network string) (*moralis_mod
 	if err != nil {
 		return nil, fmt.Errorf("failed to request Moralis Solana API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}(resp.Body)
 
 	// Check response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Moralis Solana API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("moralis Solana API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
 	// Read response body
