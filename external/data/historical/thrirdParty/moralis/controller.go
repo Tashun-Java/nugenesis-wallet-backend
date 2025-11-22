@@ -2,6 +2,7 @@ package moralis
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis/moralis_models"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"net/http"
 	"strconv"
@@ -101,6 +102,66 @@ func (c *Controller) GetWalletTokenBalances(ctx *gin.Context) {
 		Balances: mappedBalances,
 		Cursor:   balances.Cursor,
 		HasMore:  balances.HasMore,
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
+
+// GetSolanaWalletTokenBalances retrieves all token balances (including native SOL) for a Solana wallet address
+// Uses Moralis Solana Gateway API which has a different endpoint structure
+func (c *Controller) GetSolanaWalletTokenBalances(ctx *gin.Context) {
+	address := ctx.Param("address")
+	if address == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "address parameter is required"})
+		return
+	}
+
+	// Get optional network parameter (default: mainnet)
+	network := ctx.DefaultQuery("network", "mainnet")
+
+	// Get native SOL balance
+	nativeBalance, err := c.service.GetSolanaBalance(address, network)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get SPL token balances
+	tokenBalances, err := c.service.GetSolanaTokenBalances(address, network)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Map native SOL balance to standard format
+	var mappedBalances []models.WalletTokenBalance
+
+	// Add native SOL as the first token
+	nativeToken := moralis_models.SolanaToken{
+		Mint:      "So11111111111111111111111111111111111111112", // Native SOL mint address
+		Amount:    nativeBalance.Solana,
+		AmountRaw: nativeBalance.Lamports,
+		Decimals:  "9",
+		Name:      "Solana",
+		Symbol:    "SOL",
+	}
+	mappedNative := MapSolanaTokenToStandard(nativeToken, "solana", true)
+	mappedBalances = append(mappedBalances, mappedNative)
+
+	// Add SPL tokens
+	for _, token := range *tokenBalances {
+		mappedBalance := MapSolanaTokenToStandard(token, "solana", false)
+		mappedBalances = append(mappedBalances, mappedBalance)
+	}
+
+	// Prepare response
+	response := models.WalletTokenBalancesResponse{
+		Success:  true,
+		Address:  address,
+		Chain:    "solana",
+		Balances: mappedBalances,
+		Cursor:   "",    // Solana API doesn't use cursor pagination
+		HasMore:  false, // No pagination for Solana API
 	}
 
 	ctx.JSON(http.StatusOK, response)

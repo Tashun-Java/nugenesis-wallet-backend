@@ -21,6 +21,8 @@ type ControllerPool struct {
 	ethereumController         *etherscan.Controller
 	solanaController           *helius.Controller
 	polygonController          *moralis.Controller
+	ethereumMoralisController  *moralis.Controller
+	solanaMoralisController    *moralis.Controller
 	alchemyTokenController     *alchemy.Controller
 	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
 	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
@@ -56,6 +58,14 @@ func (cp *ControllerPool) GetPolygonController() *moralis.Controller {
 	return cp.polygonController
 }
 
+func (cp *ControllerPool) GetEthereumMoralisController() *moralis.Controller {
+	return cp.ethereumMoralisController
+}
+
+func (cp *ControllerPool) GetSolanaMoralisController() *moralis.Controller {
+	return cp.solanaMoralisController
+}
+
 func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
 	return cp.alchemyTokenController
 }
@@ -74,6 +84,8 @@ func initControllers() {
 		controllerPool.ethereumController = etherscan.NewController()
 		controllerPool.solanaController = helius.NewController()
 		controllerPool.polygonController = moralis.NewController("polygon")
+		controllerPool.ethereumMoralisController = moralis.NewController("eth")
+		controllerPool.solanaMoralisController = moralis.NewController("solana")
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
@@ -169,8 +181,12 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 
 		// Support multi-chain token balances
 		switch general.CoinType(blockchainID) {
+		case general.Ethereum:
+			controllerPool.GetEthereumMoralisController().GetWalletTokenBalances(ctx)
 		case general.Polygon:
 			controllerPool.GetPolygonController().GetWalletTokenBalances(ctx)
+		case general.Solana:
+			controllerPool.GetSolanaMoralisController().GetSolanaWalletTokenBalances(ctx)
 		default:
 			// For other chains, you can add support for different providers
 			ctx.JSON(400, gin.H{"error": "Token balances not yet supported for this blockchain"})

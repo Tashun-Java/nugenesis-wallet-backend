@@ -531,3 +531,38 @@ func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string) 
 		Chain:               chain,
 	}
 }
+
+// MapSolanaTokenToStandard converts Moralis Solana token balance to standard wallet token balance format
+func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, isNative bool) models.WalletTokenBalance {
+	// Parse decimals
+	decimals := "9" // Default for SOL
+	if token.Decimals != "" {
+		decimals = token.Decimals
+	}
+
+	// Use the formatted amount
+	balance := token.Amount
+	if balance == "" {
+		balance = "0"
+	}
+
+	return models.WalletTokenBalance{
+		TokenAddress:        token.Mint,
+		Name:                token.Name,
+		Symbol:              token.Symbol,
+		Logo:                token.Logo,
+		Thumbnail:           token.Logo,
+		Decimals:            decimals,
+		Balance:             balance,
+		BalanceRaw:          token.AmountRaw,
+		NativeToken:         isNative,
+		VerifiedContract:    false, // Solana API doesn't provide this
+		PossibleSpam:        false, // Solana API doesn't provide this
+		UsdPrice:            token.UsdPrice,
+		UsdValue:            token.UsdValue,
+		UsdPrice24hrChange:  0,
+		PortfolioPercentage: 0,
+		SecurityScore:       0,
+		Chain:               chain,
+	}
+}
