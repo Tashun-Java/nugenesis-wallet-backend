@@ -9,10 +9,8 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/external/data"
 	"github.com/tashunc/nugenesis-wallet-backend/static"
 
-	//"github.com/tashunc/nugenesis-wallet-backend/external/middleware"
 	"github.com/tashunc/nugenesis-wallet-backend/external/user"
 	"github.com/tashunc/nugenesis-wallet-backend/pkg/logger"
-	//"github.com/tashunc/nugenesis-wallet-backend/staticServices"
 	"net/http"
 	"time"
 )
