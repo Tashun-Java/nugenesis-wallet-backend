@@ -93,3 +93,58 @@ type InternalTxn struct {
 	Error        *string `json:"error"`
 	RevertReason *string `json:"revertReason"`
 }
+
+// AssetTransfersRequest represents the request for alchemy_getAssetTransfers RPC
+type AssetTransfersRequest struct {
+	FromBlock         *string  `json:"fromBlock,omitempty"`
+	ToBlock           *string  `json:"toBlock,omitempty"`
+	FromAddress       *string  `json:"fromAddress,omitempty"`
+	ToAddress         *string  `json:"toAddress,omitempty"`
+	ContractAddresses []string `json:"contractAddresses,omitempty"`
+	Category          []string `json:"category"`
+	ExcludeZeroValue  *bool    `json:"excludeZeroValue,omitempty"`
+	MaxCount          *string  `json:"maxCount,omitempty"`
+	PageKey           *string  `json:"pageKey,omitempty"`
+	WithMetadata      *bool    `json:"withMetadata,omitempty"`
+	Order             *string  `json:"order,omitempty"`
+}
+
+// AssetTransfersResponse represents the response from alchemy_getAssetTransfers RPC
+type AssetTransfersResponse struct {
+	Transfers []AssetTransfer `json:"transfers"`
+	PageKey   *string         `json:"pageKey,omitempty"`
+}
+
+// AssetTransfer represents a single asset transfer
+type AssetTransfer struct {
+	BlockNum        string            `json:"blockNum"`
+	Hash            string            `json:"hash"`
+	From            string            `json:"from"`
+	To              *string           `json:"to"`
+	Value           *float64          `json:"value"`
+	Erc721TokenId   *string           `json:"erc721TokenId,omitempty"`
+	Erc1155Metadata []Erc1155Metadata `json:"erc1155Metadata,omitempty"`
+	TokenId         *string           `json:"tokenId,omitempty"`
+	Asset           *string           `json:"asset"`
+	Category        string            `json:"category"`
+	RawContract     RawContract       `json:"rawContract"`
+	Metadata        *TransferMetadata `json:"metadata,omitempty"`
+}
+
+// Erc1155Metadata represents ERC1155 token metadata
+type Erc1155Metadata struct {
+	TokenId *string `json:"tokenId"`
+	Value   *string `json:"value"`
+}
+
+// RawContract represents contract information
+type RawContract struct {
+	Value   *string `json:"value"`
+	Address *string `json:"address"`
+	Decimal *string `json:"decimal"`
+}
+
+// TransferMetadata represents additional metadata for a transfer
+type TransferMetadata struct {
+	BlockTimestamp string `json:"blockTimestamp"`
+}

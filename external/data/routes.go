@@ -21,6 +21,8 @@ type ControllerPool struct {
 	ethereumController         *etherscan.Controller
 	solanaController           *helius.Controller
 	polygonController          *moralis.Controller
+	ethereumMoralisController  *moralis.Controller
+	solanaMoralisController    *moralis.Controller
 	alchemyTokenController     *alchemy.Controller
 	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
 	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
@@ -44,8 +46,8 @@ func (cp *ControllerPool) GetBlockstreamController() *blockstream.Controller {
 	return cp.blockstreamController
 }
 
-func (cp *ControllerPool) GetEthereumController() *etherscan.Controller {
-	return cp.ethereumController
+func (cp *ControllerPool) GetEthereumController() *alchemy.Controller {
+	return cp.alchemyHistoricControllers[general.Ethereum]
 }
 
 func (cp *ControllerPool) GetSolanaController() *helius.Controller {
@@ -54,6 +56,14 @@ func (cp *ControllerPool) GetSolanaController() *helius.Controller {
 
 func (cp *ControllerPool) GetPolygonController() *moralis.Controller {
 	return cp.polygonController
+}
+
+func (cp *ControllerPool) GetEthereumMoralisController() *moralis.Controller {
+	return cp.ethereumMoralisController
+}
+
+func (cp *ControllerPool) GetSolanaMoralisController() *moralis.Controller {
+	return cp.solanaMoralisController
 }
 
 func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
@@ -69,11 +79,31 @@ func initControllers() {
 	}
 
 	controllerPool.once.Do(func() {
+		// Initialize token ID service
+		tokenIDService := GetTokenIDService()
+		if err := tokenIDService.LoadMappings("assets/id_mappings.json"); err != nil {
+			// Log the error but don't fail initialization
+			// Token IDs will just be empty if the file can't be loaded
+			println("Warning: Failed to load token ID mappings:", err.Error())
+		}
+
 		controllerPool.bitcoinController = blockchaininfo.NewController()
 		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
 		controllerPool.solanaController = helius.NewController()
+
+		// Create Moralis controllers
 		controllerPool.polygonController = moralis.NewController("polygon")
+		controllerPool.ethereumMoralisController = moralis.NewController("eth")
+		controllerPool.solanaMoralisController = moralis.NewController("solana")
+
+		// Set token ID service getter for Moralis controllers
+		tokenIDServiceGetter := func() moralis.TokenIDServiceInterface {
+			return GetTokenIDService()
+		}
+		controllerPool.polygonController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.ethereumMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.solanaMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
@@ -101,29 +131,6 @@ func initControllers() {
 			general.Sei:             "ALCHEMY_SEI_RPC_BASE_URL",
 			general.Scroll:          "ALCHEMY_SCROLL_RPC_BASE_URL",
 			general.OpBNB:           "ALCHEMY_OPBNB_RPC_BASE_URL",
-			general.Sepolia:         "ALCHEMY_SEPOLIA_RPC_BASE_URL",
-			// Testnet mappings (mainnet + 160)
-			general.EthereumTest:        "ALCHEMY_ETHEREUM_TEST_RPC_BASE_URL",
-			general.OptimismTest:        "ALCHEMY_OPTIMISM_TEST_RPC_BASE_URL",
-			general.PolygonTest:         "ALCHEMY_POLYGON_TEST_RPC_BASE_URL",
-			general.PolygonzkEVMTest:    "ALCHEMY_POLYGONZK_TEST_RPC_BASE_URL",
-			general.ArbitrumTest:        "ALCHEMY_ARBITRUM_TEST_RPC_BASE_URL",
-			general.ZetaEVMTest:         "ALCHEMY_ZETA_TEST_RPC_BASE_URL",
-			general.MantleTest:          "ALCHEMY_MANTLE_TEST_RPC_BASE_URL",
-			general.BlastTest:           "ALCHEMY_BLAST_TEST_RPC_BASE_URL",
-			general.LineaTest:           "ALCHEMY_LINEA_TEST_RPC_BASE_URL",
-			general.RoninTest:           "ALCHEMY_RONIN_TEST_RPC_BASE_URL",
-			general.RootstockTest:       "ALCHEMY_ROOTSTOCK_TEST_RPC_BASE_URL",
-			general.ArbitrumNovaTest:    "ALCHEMY_ARBITRUMNOVA_TEST_RPC_BASE_URL",
-			general.BaseTest:            "ALCHEMY_BASE_TEST_RPC_BASE_URL",
-			general.AvalancheCChainTest: "ALCHEMY_AVALANCHE_TEST_RPC_BASE_URL",
-			general.BinanceTest:         "ALCHEMY_BINANCE_TEST_RPC_BASE_URL",
-			general.CeloTest:            "ALCHEMY_CELO_TEST_RPC_BASE_URL",
-			general.SonicTest:           "ALCHEMY_SONIC_TEST_RPC_BASE_URL",
-			general.SeiTest:             "ALCHEMY_SEI_TEST_RPC_BASE_URL",
-			general.ScrollTest:          "ALCHEMY_SCROLL_TEST_RPC_BASE_URL",
-			general.OpBNBTest:           "ALCHEMY_OPBNB_TEST_RPC_BASE_URL",
-			general.SepoliaTest:         "ALCHEMY_SEPOLIA_TEST_RPC_BASE_URL",
 		}
 
 		for coinType, envVar := range envMap {
@@ -164,7 +171,7 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 		case general.Bitcoin:
 			controllerPool.GetBlockstreamController().GetAddressTransactions(ctx)
 		case general.Ethereum:
-			controllerPool.GetEthereumController().GetAddressInfo(ctx)
+			controllerPool.GetEthereumController().GetAssetTransfers(ctx)
 		case general.Solana:
 			controllerPool.GetSolanaController().GetAddressInfo(ctx)
 		case general.Polygon:
@@ -184,6 +191,24 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 
 	rg.GET("/tokens", func(ctx *gin.Context) {
 		controllerPool.GetAlchemyTokenController().GetTokensByAddressQuery(ctx)
+	})
+
+	// Wallet token balances endpoint with multi-chain support
+	rg.GET("/balances/:address", func(ctx *gin.Context) {
+		blockchainID := ctx.Param("id")
+
+		// Support multi-chain token balances
+		switch general.CoinType(blockchainID) {
+		case general.Ethereum:
+			controllerPool.GetEthereumMoralisController().GetWalletTokenBalances(ctx)
+		case general.Polygon:
+			controllerPool.GetPolygonController().GetWalletTokenBalances(ctx)
+		case general.Solana:
+			controllerPool.GetSolanaMoralisController().GetSolanaWalletTokenBalances(ctx)
+		default:
+			// For other chains, you can add support for different providers
+			ctx.JSON(400, gin.H{"error": "Token balances not yet supported for this blockchain"})
+		}
 	})
 }
 

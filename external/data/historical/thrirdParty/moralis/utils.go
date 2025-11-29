@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+// TokenIDServiceInterface defines the interface for token ID lookup
+type TokenIDServiceInterface interface {
+	GetTokenID(chain, tokenAddress string) string
+	GetTokenIDForNative(chain, symbol string) string
+}
+
 // MapHistoryToTransaction converts Moralis history transaction to standard transaction format
 func MapHistoryToTransaction(tx moralis_models.HistoryTransaction, walletAddress string) models.Transaction {
 	timestamp, _ := time.Parse(time.RFC3339, tx.BlockTimestamp)
@@ -465,4 +471,130 @@ func determineTypeFromCategoryAndSummary(category, summary, fromAddress, toAddre
 	}
 
 	return "unknown"
+}
+
+// MapTokenBalanceToStandard converts Moralis token balance to standard wallet token balance format
+func MapTokenBalanceToStandard(token moralis_models.TokenBalance, chain string, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
+	// Determine if this is a native token
+	isNativeToken := false
+	if token.NativeToken != nil {
+		isNativeToken = *token.NativeToken
+	}
+
+	// Parse balance value
+	balance := "0"
+	if token.BalanceFormatted != "" {
+		balance = token.BalanceFormatted
+	}
+
+	// Parse USD value
+	usdValue := 0.0
+	if token.UsdValue != nil {
+		usdValue = *token.UsdValue
+	}
+
+	// Parse USD price
+	usdPrice := 0.0
+	if token.UsdPrice != nil {
+		usdPrice = *token.UsdPrice
+	}
+
+	// Parse 24h price change percentage
+	priceChange24h := 0.0
+	if token.UsdPrice24hrPercentChange != nil {
+		priceChange24h = *token.UsdPrice24hrPercentChange
+	}
+
+	// Parse portfolio percentage
+	portfolioPercentage := 0.0
+	if token.PortfolioPercentage != nil {
+		portfolioPercentage = *token.PortfolioPercentage
+	}
+
+	// Parse security score
+	securityScore := 0
+	if token.SecurityScore != nil {
+		securityScore = *token.SecurityScore
+	}
+
+	// Lookup token ID
+	tokenID := ""
+	if tokenIDService != nil {
+		if isNativeToken {
+			// Use symbol-based lookup for native tokens
+			tokenID = tokenIDService.GetTokenIDForNative(chain, token.Symbol)
+		} else {
+			// Use address-based lookup for non-native tokens
+			tokenID = tokenIDService.GetTokenID(chain, token.TokenAddress)
+		}
+	}
+
+	return models.WalletTokenBalance{
+		TokenAddress:        token.TokenAddress,
+		TokenID:             tokenID,
+		Name:                token.Name,
+		Symbol:              token.Symbol,
+		Logo:                token.Logo,
+		Thumbnail:           token.Thumbnail,
+		Decimals:            strconv.Itoa(token.Decimals),
+		Balance:             balance,
+		BalanceRaw:          token.Balance,
+		NativeToken:         isNativeToken,
+		VerifiedContract:    token.VerifiedContract,
+		PossibleSpam:        token.PossibleSpam,
+		UsdPrice:            usdPrice,
+		UsdValue:            usdValue,
+		UsdPrice24hrChange:  priceChange24h,
+		PortfolioPercentage: portfolioPercentage,
+		SecurityScore:       securityScore,
+		Chain:               chain,
+	}
+}
+
+// MapSolanaTokenToStandard converts Moralis Solana token balance to standard wallet token balance format
+func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, isNative bool, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
+	// Parse decimals
+	decimals := "9" // Default for SOL
+	if token.Decimals != "" {
+		decimals = token.Decimals
+	}
+
+	// Use the formatted amount
+	balance := token.Amount
+	if balance == "" {
+		balance = "0"
+	}
+
+	// Lookup token ID
+	tokenID := ""
+	if tokenIDService != nil {
+		if isNative {
+			// Use symbol-based lookup for native tokens
+			tokenID = tokenIDService.GetTokenIDForNative(chain, token.Symbol)
+		} else {
+			// Use address-based lookup for SPL tokens
+			tokenID = tokenIDService.GetTokenID(chain, token.Mint)
+		}
+	}
+
+	return models.WalletTokenBalance{
+		TokenAddress:        token.Mint,
+		TokenID:             tokenID,
+		Name:                token.Name,
+		Symbol:              token.Symbol,
+		Logo:                token.Logo,
+		Thumbnail:           token.Logo,
+		Decimals:            decimals,
+		Balance:             balance,
+		BalanceRaw:          token.AmountRaw,
+		NativeToken:         isNative,
+		VerifiedContract:    false, // Solana API doesn't provide this
+		PossibleSpam:        false, // Solana API doesn't provide this
+		UsdPrice:            token.UsdPrice,
+		UsdValue:            token.UsdValue,
+		UsdPrice24hrChange:  0,
+		PortfolioPercentage: 0,
+		SecurityScore:       0,
+		Chain:               chain,
+	}
 }

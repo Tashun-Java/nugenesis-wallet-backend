@@ -1,6 +1,7 @@
 package staticServices
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -191,12 +192,7 @@ func (s *BlockchainService) initializeBlockchainMapping() {
 	s.blockchainMap["pactus"] = general.Pactus
 	s.blockchainMap["sonic"] = general.Sonic
 	s.blockchainMap["polymesh"] = general.Polymesh
-	s.blockchainMap["sepolia"] = general.Sepolia
 
-	// Test networks (adding key test networks for completeness)
-	s.blockchainMap["optimismgoerli"] = general.OptimismTest
-	s.blockchainMap["goerli"] = general.EthereumTest
-	s.blockchainMap["mumbai"] = general.PolygonTest
 }
 
 // GetBlockchainID returns the CoinType ID for a given blockchain name
@@ -244,6 +240,19 @@ func (s *BlockchainService) GetAllBlockchains() ([]staticModels.BlockchainRespon
 			AssetCount: assetCount,
 		}
 
+		// Read blockchain info.json to get additional details
+		infoPath := filepath.Join("assets/blockchains", blockchainName, "info", "info.json")
+		if infoData, err := ioutil.ReadFile(infoPath); err == nil {
+			var blockchainInfo staticModels.BlockchainInfo
+			if err := json.Unmarshal(infoData, &blockchainInfo); err == nil {
+				blockchain.Symbol = blockchainInfo.Symbol
+				blockchain.Website = blockchainInfo.Website
+				blockchain.Explorer = blockchainInfo.Explorer
+				blockchain.Decimals = blockchainInfo.Decimals
+				blockchain.ImageURL = "/static/assetsLogo/blockchains/" + blockchainName + "/info/logo.png"
+			}
+		}
+
 		blockchains = append(blockchains, blockchain)
 	}
 
@@ -280,6 +289,19 @@ func (s *BlockchainService) GetBlockchainByID(id string) (*staticModels.Blockcha
 				IsTestnet:  isTestnet,
 				HasAssets:  hasAssets,
 				AssetCount: assetCount,
+			}
+
+			// Read blockchain info.json to get additional details
+			infoPath := filepath.Join("assets/blockchains", blockchainName, "info", "info.json")
+			if infoData, err := ioutil.ReadFile(infoPath); err == nil {
+				var blockchainInfo staticModels.BlockchainInfo
+				if err := json.Unmarshal(infoData, &blockchainInfo); err == nil {
+					blockchain.Symbol = blockchainInfo.Symbol
+					blockchain.Website = blockchainInfo.Website
+					blockchain.Explorer = blockchainInfo.Explorer
+					blockchain.Decimals = blockchainInfo.Decimals
+					blockchain.ImageURL = "/static/assetsLogo/blockchains/" + blockchainName + "/info/logo.png"
+				}
 			}
 
 			return blockchain, nil

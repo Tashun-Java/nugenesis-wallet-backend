@@ -131,4 +131,72 @@ func (s *Service) GetTransactionHistory(addresses []alchemy_models.AddressReques
 	return &response, nil
 }
 
+// GetAssetTransfers implements the alchemy_getAssetTransfers RPC to get historical asset transfer data
+func (s *Service) GetAssetTransfers(request *alchemy_models.AssetTransfersRequest) (*alchemy_models.AssetTransfersResponse, error) {
+	// Alchemy RPC endpoint format: https://[network].g.alchemy.com/v2/[api-key]
+	url := fmt.Sprintf("https://eth-mainnet.g.alchemy.com/v2/%s", *s.apiKey)
+
+	// Create JSON-RPC request
+	rpcRequest := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "alchemy_getAssetTransfers",
+		"params":  []interface{}{request},
+	}
+
+	jsonData, err := json.Marshal(rpcRequest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make request: %w", err)
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Printf("failed to close response body: %v\n", err)
+		}
+	}(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Parse JSON-RPC response
+	var rpcResponse struct {
+		Jsonrpc string                                `json:"jsonrpc"`
+		ID      int                                   `json:"id"`
+		Result  alchemy_models.AssetTransfersResponse `json:"result"`
+		Error   *struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+
+	if err := json.Unmarshal(body, &rpcResponse); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if rpcResponse.Error != nil {
+		return nil, fmt.Errorf("RPC error %d: %s", rpcResponse.Error.Code, rpcResponse.Error.Message)
+	}
+
+	return &rpcResponse.Result, nil
+}
+
 //func (s *Service) GetSolanaHistory	(addresses []alchemy_models.AddressRequest, limit *int) (*alchemy_models.TokensByAddressResponse, error) {

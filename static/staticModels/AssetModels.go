@@ -63,6 +63,15 @@ type AllSymbolsResponse struct {
 	Count   int      `json:"count"`
 }
 
+// AllAssetsResponse represents the response for GetAllAssets endpoint
+type AllAssetsResponse struct {
+	Assets []AssetResponse `json:"assets"`
+	Count  int             `json:"count"`
+	Total  int             `json:"total"`
+	Limit  int             `json:"limit"`
+	Offset int             `json:"offset"`
+}
+
 // RefreshResponse represents the response for ForceRefresh endpoint
 type RefreshResponse struct {
 	Message string `json:"message"`
@@ -83,6 +92,10 @@ type BlockchainResponse struct {
 	ID         string `json:"id"`
 	Name       string `json:"name"`
 	Symbol     string `json:"symbol,omitempty"`
+	Website    string `json:"website,omitempty"`
+	Explorer   string `json:"explorer,omitempty"`
+	Decimals   int    `json:"decimals,omitempty"`
+	ImageURL   string `json:"image_url,omitempty"`
 	IsTestnet  bool   `json:"is_testnet"`
 	HasAssets  bool   `json:"has_assets"`
 	AssetCount int    `json:"asset_count"`

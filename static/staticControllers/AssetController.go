@@ -2,6 +2,7 @@ package staticControllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tashunc/nugenesis-wallet-backend/static/staticModels"
@@ -59,6 +60,46 @@ func (c *AssetController) GetAllSymbols(ctx *gin.Context) {
 	response := staticModels.AllSymbolsResponse{
 		Symbols: symbols,
 		Count:   len(symbols),
+	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// GetAllAssets handles GET requests to get all assets with full details
+func (c *AssetController) GetAllAssets(ctx *gin.Context) {
+	limitStr := ctx.DefaultQuery("limit", "50")
+	offsetStr := ctx.DefaultQuery("offset", "0")
+	blockchainID := ctx.Query("blockchain_id")
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, staticModels.ErrorResponse{
+			Error: "invalid limit parameter",
+		})
+		return
+	}
+
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, staticModels.ErrorResponse{
+			Error: "invalid offset parameter",
+		})
+		return
+	}
+
+	assets, total, err := c.assetService.GetAllAssetsWithPagination(limit, offset, blockchainID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, staticModels.ErrorResponse{
+			Error: err.Error(),
+		})
+		return
+	}
+
+	response := staticModels.AllAssetsResponse{
+		Assets: assets,
+		Count:  len(assets),
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
 	}
 	ctx.JSON(http.StatusOK, response)
 }

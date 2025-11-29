@@ -87,3 +87,72 @@ type Log struct {
 	Topic2           string `json:"topic2,omitempty"`
 	Topic3           string `json:"topic3,omitempty"`
 }
+
+// WalletTokenBalancesResponse represents the response from Moralis /wallets/{address}/tokens endpoint
+type WalletTokenBalancesResponse struct {
+	Cursor  string         `json:"cursor,omitempty"`
+	Page    int            `json:"page,omitempty"`
+	Result  []TokenBalance `json:"result"`
+	HasMore bool           `json:"hasMore,omitempty"`
+}
+
+// TokenBalance represents a single token balance in the wallet
+type TokenBalance struct {
+	TokenAddress                    string   `json:"token_address"`
+	Name                            string   `json:"name"`
+	Symbol                          string   `json:"symbol"`
+	Logo                            string   `json:"logo,omitempty"`
+	Thumbnail                       string   `json:"thumbnail,omitempty"`
+	Decimals                        int      `json:"decimals"`
+	Balance                         string   `json:"balance"`
+	BalanceFormatted                string   `json:"balance_formatted"`
+	PossibleSpam                    bool     `json:"possible_spam"`
+	VerifiedContract                bool     `json:"verified_contract"`
+	TotalSupply                     string   `json:"total_supply,omitempty"`
+	TotalSupplyFormatted            string   `json:"total_supply_formatted,omitempty"`
+	PercentageRelativeToTotalSupply *float64 `json:"percentage_relative_to_total_supply,omitempty"`
+	SecurityScore                   *int     `json:"security_score,omitempty"`
+	UsdPrice                        *float64 `json:"usd_price,omitempty"`
+	UsdPrice24hrPercentChange       *float64 `json:"usd_price_24hr_percent_change,omitempty"`
+	UsdPrice24hrUsdChange           *float64 `json:"usd_price_24hr_usd_change,omitempty"`
+	UsdValue                        *float64 `json:"usd_value,omitempty"`
+	UsdValue24hrUsdChange           *float64 `json:"usd_value_24hr_usd_change,omitempty"`
+	NativeToken                     *bool    `json:"native_token,omitempty"`
+	PortfolioPercentage             *float64 `json:"portfolio_percentage,omitempty"`
+}
+
+// Solana-specific models for Moralis Solana Gateway API
+
+// SolanaTokenBalancesResponse represents the response from Moralis Solana getSPL endpoint
+// The API returns an array of tokens directly
+type SolanaTokenBalancesResponse []SolanaToken
+
+// SolanaToken represents a single SPL token balance
+type SolanaToken struct {
+	AssociatedTokenAddress string  `json:"associatedTokenAddress"`
+	Mint                   string  `json:"mint"`
+	AmountRaw              string  `json:"amountRaw"`
+	Amount                 string  `json:"amount"`
+	Decimals               string  `json:"decimals"`
+	Name                   string  `json:"name,omitempty"`
+	Symbol                 string  `json:"symbol,omitempty"`
+	Logo                   string  `json:"logo,omitempty"`
+	UsdPrice               float64 `json:"usdPrice,omitempty"`
+	UsdValue               float64 `json:"usdValue,omitempty"`
+}
+
+// SolanaBalanceResponse represents the response from Moralis Solana balance endpoint
+type SolanaBalanceResponse struct {
+	Lamports string `json:"lamports"`
+	Solana   string `json:"solana"`
+}
+
+// SolanaPortfolioResponse represents the response from Moralis Solana portfolio endpoint
+type SolanaPortfolioResponse struct {
+	NativeBalance struct {
+		Lamports string `json:"lamports"`
+		Solana   string `json:"solana"`
+	} `json:"nativeBalance"`
+	Tokens    []SolanaToken `json:"tokens"`
+	NftTokens []SolanaToken `json:"nftTokens,omitempty"`
+}
