@@ -1,5 +1,7 @@
 package moralis_models
 
+import "github.com/tashunc/nugenesis-wallet-backend/external/models/general"
+
 type WalletHistoryResponse struct {
 	Cursor  string               `json:"cursor"`
 	HasMore bool                 `json:"hasMore"`
@@ -129,16 +131,16 @@ type SolanaTokenBalancesResponse []SolanaToken
 
 // SolanaToken represents a single SPL token balance
 type SolanaToken struct {
-	AssociatedTokenAddress string  `json:"associatedTokenAddress"`
-	Mint                   string  `json:"mint"`
-	AmountRaw              string  `json:"amountRaw"`
-	Amount                 string  `json:"amount"`
-	Decimals               string  `json:"decimals"`
-	Name                   string  `json:"name,omitempty"`
-	Symbol                 string  `json:"symbol,omitempty"`
-	Logo                   string  `json:"logo,omitempty"`
-	UsdPrice               float64 `json:"usdPrice,omitempty"`
-	UsdValue               float64 `json:"usdValue,omitempty"`
+	AssociatedTokenAddress string           `json:"associatedTokenAddress"`
+	Mint                   string           `json:"mint"`
+	AmountRaw              string           `json:"amountRaw"`
+	Amount                 string           `json:"amount"`
+	Decimals               general.Decimals `json:"decimals"`
+	Name                   string           `json:"name,omitempty"`
+	Symbol                 string           `json:"symbol,omitempty"`
+	Logo                   string           `json:"logo,omitempty"`
+	UsdPrice               float64          `json:"usdPrice,omitempty"`
+	UsdValue               float64          `json:"usdValue,omitempty"`
 }
 
 // SolanaBalanceResponse represents the response from Moralis Solana balance endpoint
