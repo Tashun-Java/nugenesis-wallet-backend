@@ -23,27 +23,32 @@ type AssetIDMapping struct {
 
 // AssetService handles blockchain assets management
 type AssetService struct {
-	assetCache    map[string][]staticModels.AssetResponse
-	idMappings    map[string]string           // asset_key -> id
-	nextID        int                         // counter for generating new IDs
-	blockchainMap map[string]general.CoinType // blockchain name -> CoinType ID
-	mutex         sync.RWMutex
-	lastUpdate    time.Time
-	cacheTTL      time.Duration
-	assetsPath    string
-	idMappingFile string
+	assetCache       map[string][]staticModels.AssetResponse
+	idMappings       map[string]string           // asset_key -> id
+	solanaTokenCache map[string]string           // Solana mint address -> token symbol
+	nextID           int                         // counter for generating new IDs
+	blockchainMap    map[string]general.CoinType // blockchain name -> CoinType ID
+	mutex            sync.RWMutex
+	tokenCacheMutex  sync.RWMutex
+	lastUpdate       time.Time
+	cacheTTL         time.Duration
+	assetsPath       string
+	idMappingFile    string
+	tokenCacheLoaded bool
 }
 
 // NewAssetService creates a new AssetService instance
 func NewAssetService() *AssetService {
 	service := &AssetService{
-		assetCache:    make(map[string][]staticModels.AssetResponse),
-		idMappings:    make(map[string]string),
-		blockchainMap: make(map[string]general.CoinType),
-		nextID:        1,
-		cacheTTL:      30 * time.Minute, // Cache for 30 minutes
-		assetsPath:    "./assets/blockchains",
-		idMappingFile: "./assets/id_mappings.json",
+		assetCache:       make(map[string][]staticModels.AssetResponse),
+		idMappings:       make(map[string]string),
+		solanaTokenCache: make(map[string]string),
+		blockchainMap:    make(map[string]general.CoinType),
+		nextID:           1,
+		cacheTTL:         30 * time.Minute, // Cache for 30 minutes
+		assetsPath:       "./assets/blockchains",
+		idMappingFile:    "./assets/id_mappings.json",
+		tokenCacheLoaded: false,
 	}
 	service.initializeBlockchainMapping()
 	service.loadIDMappings()
@@ -519,4 +524,93 @@ func (s *AssetService) GenerateAllIDs() error {
 
 	fmt.Printf("Generated IDs for %d assets. Total mappings: %d\n", totalGenerated, len(s.idMappings))
 	return nil
+}
+
+// TokenListItem represents a single token from the tokenlist.json
+type TokenListItem struct {
+	Address string `json:"address"`
+	Symbol  string `json:"symbol"`
+	Name    string `json:"name"`
+}
+
+// TokenList represents the structure of tokenlist.json
+type TokenList struct {
+	Tokens []TokenListItem `json:"tokens"`
+}
+
+// loadSolanaTokenCache loads Solana token symbols from asset files into a static cache
+func (s *AssetService) loadSolanaTokenCache() {
+	s.tokenCacheMutex.Lock()
+	defer s.tokenCacheMutex.Unlock()
+
+	// If already loaded, skip
+	if s.tokenCacheLoaded {
+		return
+	}
+
+	s.solanaTokenCache = make(map[string]string)
+	solanaPath := filepath.Join(s.assetsPath, "solana")
+
+	// Load from asset info.json files
+	assetsDir := filepath.Join(solanaPath, "assets")
+	if entries, err := ioutil.ReadDir(assetsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				mintAddress := entry.Name() // Directory name is the mint address
+				assetInfoPath := filepath.Join(assetsDir, mintAddress, "info.json")
+
+				if assetData, err := ioutil.ReadFile(assetInfoPath); err == nil {
+					var assetInfo staticModels.AssetInfo
+					if err := json.Unmarshal(assetData, &assetInfo); err == nil {
+						// Map mint address to symbol (case-insensitive)
+						s.solanaTokenCache[strings.ToLower(mintAddress)] = assetInfo.Symbol
+					}
+				}
+			}
+		}
+	}
+
+	// Also load from tokenlist.json for additional tokens
+	tokenListPath := filepath.Join(solanaPath, "tokenlist.json")
+	if data, err := ioutil.ReadFile(tokenListPath); err == nil {
+		var tokenList TokenList
+		if err := json.Unmarshal(data, &tokenList); err == nil {
+			// Add tokens from tokenlist (don't override existing ones from info.json)
+			for _, token := range tokenList.Tokens {
+				normalizedAddr := strings.ToLower(token.Address)
+				if _, exists := s.solanaTokenCache[normalizedAddr]; !exists {
+					s.solanaTokenCache[normalizedAddr] = token.Symbol
+				}
+			}
+		}
+	}
+
+	s.tokenCacheLoaded = true
+	fmt.Printf("Loaded %d Solana tokens into cache from asset files\n", len(s.solanaTokenCache))
+}
+
+// GetTokenSymbolByMint returns the token symbol for a given Solana mint address
+// Uses a static cache loaded from tokenlist.json
+func (s *AssetService) GetTokenSymbolByMint(mint string) string {
+	// Ensure cache is loaded (happens only once)
+	if !s.tokenCacheLoaded {
+		s.loadSolanaTokenCache()
+	}
+
+	s.tokenCacheMutex.RLock()
+	defer s.tokenCacheMutex.RUnlock()
+
+	// Normalize the mint address to lowercase for case-insensitive lookup
+	normalizedMint := strings.ToLower(mint)
+
+	// Lookup in cache
+	if symbol, exists := s.solanaTokenCache[normalizedMint]; exists {
+		return symbol
+	}
+
+	// Return the first 4 characters of the mint as fallback
+	if len(mint) >= 4 {
+		return mint[:4] + "..."
+	}
+	return "UNKNOWN"
 }

@@ -45,6 +45,16 @@ type NativeTransfer struct {
 	ToUserAccount   string `json:"toUserAccount"`
 }
 
+type TokenTransfer struct {
+	FromTokenAccount string  `json:"fromTokenAccount"`
+	ToTokenAccount   string  `json:"toTokenAccount"`
+	FromUserAccount  string  `json:"fromUserAccount"`
+	ToUserAccount    string  `json:"toUserAccount"`
+	TokenAmount      float64 `json:"tokenAmount"`
+	Mint             string  `json:"mint"`
+	TokenStandard    string  `json:"tokenStandard"`
+}
+
 // Define the Transaction struct
 type Transaction struct {
 	AccountData      []AccountData          `json:"accountData"`
@@ -58,7 +68,7 @@ type Transaction struct {
 	Slot             int64                  `json:"slot"`
 	Source           string                 `json:"source"`
 	Timestamp        int64                  `json:"timestamp"`
-	TokenTransfers   []interface{}          `json:"tokenTransfers"`
+	TokenTransfers   []TokenTransfer        `json:"tokenTransfers"`
 	TransactionError interface{}            `json:"transactionError"`
 	Type             string                 `json:"type"`
 }
