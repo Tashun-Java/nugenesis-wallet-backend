@@ -78,9 +78,10 @@ func (s *TokenIDService) GetTokenID(chain, tokenAddress string) string {
 
 	// Build the asset key in the format: chain-tokenAddress
 	assetKey := fmt.Sprintf("%s-%s", normalizedChain, tokenAddress)
+	lowerKey := strings.ToLower(assetKey)
 
 	// Lookup with case-insensitive key
-	if id, exists := s.mappings[strings.ToLower(assetKey)]; exists {
+	if id, exists := s.mappings[lowerKey]; exists {
 		return id
 	}
 
@@ -98,9 +99,10 @@ func (s *TokenIDService) GetTokenIDForNative(chain, symbol string) string {
 
 	// Build the asset key in the format: chain-SYMBOL-native
 	assetKey := fmt.Sprintf("%s-%s-native", normalizedChain, symbol)
+	lowerKey := strings.ToLower(assetKey)
 
 	// Lookup with case-insensitive key
-	if id, exists := s.mappings[strings.ToLower(assetKey)]; exists {
+	if id, exists := s.mappings[lowerKey]; exists {
 		return id
 	}
 

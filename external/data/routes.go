@@ -16,17 +16,20 @@ import (
 
 // Controller pool
 type ControllerPool struct {
-	bitcoinController          *blockchaininfo.Controller
-	blockstreamController      *blockstream.Controller
-	ethereumController         *etherscan.Controller
-	solanaController           *helius.Controller
-	polygonController          *moralis.Controller
-	ethereumMoralisController  *moralis.Controller
-	solanaMoralisController    *moralis.Controller
-	alchemyTokenController     *alchemy.Controller
-	alchemyHistoricControllers map[general.CoinType]*alchemy.Controller
-	alchemyRPCControllers      map[general.CoinType]*alchemy_general.Controller
-	once                       sync.Once
+	bitcoinController                  *blockchaininfo.Controller
+	blockstreamController              *blockstream.Controller
+	ethereumController                 *etherscan.Controller
+	solanaController                   *helius.Controller
+	polygonController                  *moralis.Controller
+	ethereumMoralisController          *moralis.Controller
+	solanaMoralisController            *moralis.Controller
+	tronMoralisController              *moralis.Controller
+	arbitrumMoralisController          *moralis.Controller
+	binanceSmartChainMoralisController *moralis.Controller
+	alchemyTokenController             *alchemy.Controller
+	alchemyHistoricControllers         map[general.CoinType]*alchemy.Controller
+	alchemyRPCControllers              map[general.CoinType]*alchemy_general.Controller
+	once                               sync.Once
 }
 
 var controllerPool *ControllerPool
@@ -66,6 +69,14 @@ func (cp *ControllerPool) GetSolanaMoralisController() *moralis.Controller {
 	return cp.solanaMoralisController
 }
 
+func (cp *ControllerPool) GetTronMoralisController() *moralis.Controller {
+	return cp.tronMoralisController
+}
+
+func (cp *ControllerPool) GetBinanceMoralisController() *moralis.Controller {
+	return cp.binanceSmartChainMoralisController
+}
+
 func (cp *ControllerPool) GetAlchemyTokenController() *alchemy.Controller {
 	return cp.alchemyTokenController
 }
@@ -96,6 +107,9 @@ func initControllers() {
 		controllerPool.polygonController = moralis.NewController("polygon")
 		controllerPool.ethereumMoralisController = moralis.NewController("eth")
 		controllerPool.solanaMoralisController = moralis.NewController("solana")
+		controllerPool.tronMoralisController = moralis.NewController("tron")
+		controllerPool.arbitrumMoralisController = moralis.NewController("0xa4b1")
+		controllerPool.binanceSmartChainMoralisController = moralis.NewController("bsc")
 
 		// Set token ID service getter for Moralis controllers
 		tokenIDServiceGetter := func() moralis.TokenIDServiceInterface {
@@ -104,6 +118,9 @@ func initControllers() {
 		controllerPool.polygonController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		controllerPool.ethereumMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		controllerPool.solanaMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.tronMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.arbitrumMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+		controllerPool.binanceSmartChainMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{
@@ -176,6 +193,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetSolanaController().GetAddressInfo(ctx)
 		case general.Polygon:
 			controllerPool.GetPolygonController().GetWalletHistory(ctx)
+		case general.Binance:
+			controllerPool.GetBinanceMoralisController().GetWalletHistory(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -205,6 +224,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetPolygonController().GetWalletTokenBalances(ctx)
 		case general.Solana:
 			controllerPool.GetSolanaMoralisController().GetSolanaWalletTokenBalances(ctx)
+		case general.Binance:
+			controllerPool.GetBinanceMoralisController().GetWalletTokenBalances(ctx)
 		default:
 			// For other chains, you can add support for different providers
 			ctx.JSON(400, gin.H{"error": "Token balances not yet supported for this blockchain"})

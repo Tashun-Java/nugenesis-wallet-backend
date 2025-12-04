@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis/moralis_models"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
@@ -131,6 +132,7 @@ func (s *Service) GetWalletTokenBalances(address string, chain string, cursor st
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Moralis response: %w", err)
 	}
+	log.Printf("Moralis Balance response: %s", string(body))
 
 	// Unmarshal JSON response
 	var apiResp moralis_models.WalletTokenBalancesResponse
