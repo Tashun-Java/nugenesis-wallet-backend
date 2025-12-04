@@ -8,6 +8,7 @@ import (
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/etherscan"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/helius"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/tronscan"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/rpc/alchemy/alchemy_general"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models/general"
 	"os"
@@ -24,6 +25,7 @@ type ControllerPool struct {
 	ethereumMoralisController          *moralis.Controller
 	solanaMoralisController            *moralis.Controller
 	tronMoralisController              *moralis.Controller
+	tronController                     *tronscan.Controller
 	arbitrumMoralisController          *moralis.Controller
 	binanceSmartChainMoralisController *moralis.Controller
 	alchemyTokenController             *alchemy.Controller
@@ -73,6 +75,10 @@ func (cp *ControllerPool) GetTronMoralisController() *moralis.Controller {
 	return cp.tronMoralisController
 }
 
+func (cp *ControllerPool) GetTronController() *tronscan.Controller {
+	return cp.tronController
+}
+
 func (cp *ControllerPool) GetBinanceMoralisController() *moralis.Controller {
 	return cp.binanceSmartChainMoralisController
 }
@@ -102,6 +108,7 @@ func initControllers() {
 		controllerPool.blockstreamController = blockstream.NewController()
 		controllerPool.ethereumController = etherscan.NewController()
 		controllerPool.solanaController = helius.NewController()
+		controllerPool.tronController = tronscan.NewController()
 
 		// Create Moralis controllers
 		controllerPool.polygonController = moralis.NewController("polygon")
@@ -195,6 +202,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetPolygonController().GetWalletHistory(ctx)
 		case general.Binance:
 			controllerPool.GetBinanceMoralisController().GetWalletHistory(ctx)
+		case general.Tron:
+			controllerPool.GetTronController().GetAddressTransactions(ctx)
 		default:
 			ctx.JSON(400, gin.H{"error": "Unsupported blockchain"})
 		}
@@ -226,6 +235,8 @@ func registerHistoricalRoutes(rg *gin.RouterGroup) {
 			controllerPool.GetSolanaMoralisController().GetSolanaWalletTokenBalances(ctx)
 		case general.Binance:
 			controllerPool.GetBinanceMoralisController().GetWalletTokenBalances(ctx)
+		case general.Tron:
+			controllerPool.GetTronController().GetWalletTokenBalances(ctx)
 		default:
 			// For other chains, you can add support for different providers
 			ctx.JSON(400, gin.H{"error": "Token balances not yet supported for this blockchain"})
