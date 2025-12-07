@@ -128,6 +128,12 @@ func initControllers() {
 		controllerPool.tronMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		controllerPool.arbitrumMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
 		controllerPool.binanceSmartChainMoralisController.SetTokenIDServiceGetter(tokenIDServiceGetter)
+
+		// Set token ID service getter for TronScan controller
+		tronTokenIDServiceGetter := func() tronscan.TokenIDServiceInterface {
+			return GetTokenIDService()
+		}
+		controllerPool.tronController.SetTokenIDServiceGetter(tronTokenIDServiceGetter)
 		//controllerPool.alchemyTokenController = alchemy.NewController()
 
 		envMap := map[general.CoinType]string{

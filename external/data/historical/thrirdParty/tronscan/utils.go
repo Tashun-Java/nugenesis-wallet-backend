@@ -3,6 +3,7 @@ package tronscan
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -58,10 +59,24 @@ func MapToStandardTransaction(tx tronscan_models.Transaction, walletAddress stri
 
 	// Get amount and token information
 	if tx.TokenInfo != nil {
-		// Token transfer
+		// Token transfer (TRC10 or TRC20)
 		tokenSymbol = tx.TokenInfo.TokenAbbr
-		if tx.ContractData.Amount > 0 {
-			// Apply token decimals
+
+		// For TRC20 tokens, try to get amount from trigger_info parameter
+		if tx.TriggerInfo != nil && tx.TriggerInfo.Parameter != nil {
+			if valueParam, ok := tx.TriggerInfo.Parameter["value"].(string); ok {
+				// Parse the hex/decimal value from trigger info
+				if parsedValue, err := strconv.ParseFloat(valueParam, 64); err == nil {
+					decimals := tx.TokenInfo.TokenDecimal
+					if decimals == 0 {
+						decimals = 6 // Default to 6 decimals
+					}
+					divisor := math.Pow10(decimals)
+					amount = parsedValue / divisor
+				}
+			}
+		} else if tx.ContractData.Amount > 0 {
+			// TRC10 token or fallback for TRC20
 			decimals := tx.TokenInfo.TokenDecimal
 			if decimals == 0 {
 				decimals = 6 // Default to 6 decimals
@@ -70,7 +85,7 @@ func MapToStandardTransaction(tx tronscan_models.Transaction, walletAddress stri
 			amount = float64(tx.ContractData.Amount) / divisor
 		}
 	} else if tx.ContractData.Amount > 0 {
-		// Native TRX transfer
+		// Native TRX transfer or TRC10 without token info
 		amount = float64(tx.ContractData.Amount) / TRXDivisor
 		tokenSymbol = "TRX"
 	} else if tx.ContractData.CallValue > 0 {
@@ -165,7 +180,7 @@ func ValidateTronAddress(address string) bool {
 }
 
 // MapTokenBalanceToStandard converts a TronScan token balance to standard wallet token balance format
-func MapTokenBalanceToStandard(token tronscan_models.TokenBalance, address string) models.WalletTokenBalance {
+func MapTokenBalanceToStandard(token tronscan_models.TokenBalance, address string, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
 	// Parse balance
 	balance := token.Balance
 	if balance == "" {
@@ -190,9 +205,15 @@ func MapTokenBalanceToStandard(token tronscan_models.TokenBalance, address strin
 	// Calculate portfolio percentage if needed (would need total portfolio value)
 	portfolioPercentage := 0.0
 
+	// Lookup token ID from service
+	tokenID := ""
+	if tokenIDService != nil {
+		tokenID = tokenIDService.GetTokenID("tron", tokenAddress)
+	}
+
 	return models.WalletTokenBalance{
 		TokenAddress:        tokenAddress,
-		TokenID:             token.TokenID,
+		TokenID:             tokenID,
 		Name:                name,
 		Symbol:              symbol,
 		Logo:                token.TokenLogo,
@@ -213,7 +234,7 @@ func MapTokenBalanceToStandard(token tronscan_models.TokenBalance, address strin
 }
 
 // CreateNativeTRXBalance creates a native TRX balance entry
-func CreateNativeTRXBalance(trxBalance int64, usdPrice float64) models.WalletTokenBalance {
+func CreateNativeTRXBalance(trxBalance int64, usdPrice float64, tokenIDService TokenIDServiceInterface) models.WalletTokenBalance {
 	// Convert from SUN to TRX (1 TRX = 1,000,000 SUN)
 	balanceInTRX := float64(trxBalance) / TRXDivisor
 	balanceStr := fmt.Sprintf("%.6f", balanceInTRX)
@@ -221,9 +242,15 @@ func CreateNativeTRXBalance(trxBalance int64, usdPrice float64) models.WalletTok
 	// Calculate USD value
 	usdValue := balanceInTRX * usdPrice
 
+	// Lookup token ID for native TRX
+	tokenID := ""
+	if tokenIDService != nil {
+		tokenID = tokenIDService.GetTokenIDForNative("tron", "TRX")
+	}
+
 	return models.WalletTokenBalance{
 		TokenAddress:        "_", // Special marker for native token
-		TokenID:             "",  // Could be set if you have a mapping
+		TokenID:             tokenID,
 		Name:                "Tronix",
 		Symbol:              "TRX",
 		Logo:                "",
