@@ -556,7 +556,7 @@ func MapSolanaTokenToStandard(token moralis_models.SolanaToken, chain string, is
 	// Parse decimals
 	decimals := "9" // Default for SOL
 	if token.Decimals != "" {
-		decimals = token.Decimals
+		decimals = string(token.Decimals)
 	}
 
 	// Use the formatted amount

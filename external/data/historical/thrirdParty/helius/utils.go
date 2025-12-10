@@ -2,9 +2,12 @@ package helius
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/helius/helius_models"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models"
-	"time"
+	"github.com/tashunc/nugenesis-wallet-backend/static/staticServices"
 )
 
 var programMapping = map[string]string{
@@ -14,6 +17,27 @@ var programMapping = map[string]string{
 	"Vote111111111111111111111111111111111111111": "vote",            // Vote Program
 	"ComputeBudget111111111111111111111111111111": "contract_call",   // Compute Budget Program
 	"MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr": "memo",            // Memo Program
+}
+
+var (
+	// AssetService instance for accessing Solana token symbols
+	assetService     *staticServices.AssetService
+	assetServiceOnce sync.Once
+)
+
+// initAssetService initializes the AssetService singleton
+func initAssetService() {
+	assetService = staticServices.NewAssetService()
+}
+
+// getTokenSymbol returns the token symbol for a given mint address
+// Uses the static AssetService cache from the static folder
+func getTokenSymbol(mint string) string {
+	// Ensure AssetService is initialized (happens only once)
+	assetServiceOnce.Do(initAssetService)
+
+	// Use AssetService to get the token symbol
+	return assetService.GetTokenSymbolByMint(mint)
 }
 
 func MapTxToTransaction(tx helius_models.Transaction, address string) []models.Transaction {
@@ -102,7 +126,7 @@ func MapTxToTransaction(tx helius_models.Transaction, address string) []models.T
 			} else if address == transfer.ToUserAccount {
 				transactionType = "receive"
 			} else {
-				transactionType = "Error"
+				continue
 			}
 			solAmount := float64(transfer.Amount) / 1e9
 			mappedTransactions = append(mappedTransactions, models.Transaction{
@@ -113,7 +137,7 @@ func MapTxToTransaction(tx helius_models.Transaction, address string) []models.T
 				Token:     token,
 				Amount:    fmt.Sprintf("%.9f", solAmount),
 				Value:     fmt.Sprintf("%.9f", solAmount),
-				Address:   feePayer,
+				Address:   transfer.FromUserAccount, // Fixed: use actual sender, not feePayer
 				ToAddress: transfer.ToUserAccount,
 				Date:      date,
 				Time:      timeFormatted,
@@ -122,6 +146,42 @@ func MapTxToTransaction(tx helius_models.Transaction, address string) []models.T
 			})
 		}
 
+	}
+
+	if len(tx.TokenTransfers) > 0 {
+		for _, transfer := range tx.TokenTransfers {
+			// Skip if address is not involved
+			if address != transfer.FromUserAccount && address != transfer.ToUserAccount {
+				continue
+			}
+
+			var transactionType string
+			if address == transfer.FromUserAccount {
+				transactionType = "send"
+			} else {
+				transactionType = "receive"
+			}
+
+			tokenMint := transfer.Mint
+			tokenSymbol := getTokenSymbol(tokenMint)
+			tokenAmount := transfer.TokenAmount
+
+			mappedTransactions = append(mappedTransactions, models.Transaction{
+				ID:        signature,
+				Type:      transactionType,
+				Category:  "token_transfer",
+				Status:    "success",
+				Token:     tokenSymbol, // Now shows "USDC" instead of mint
+				Amount:    fmt.Sprintf("%.9f", tokenAmount),
+				Value:     fmt.Sprintf("%.9f", tokenAmount),
+				Address:   transfer.FromUserAccount,
+				ToAddress: transfer.ToUserAccount,
+				Date:      date,
+				Time:      timeFormatted,
+				Fee:       fmt.Sprintf("%.9f", fee),
+				Hash:      signature,
+			})
+		}
 	}
 
 	return mappedTransactions

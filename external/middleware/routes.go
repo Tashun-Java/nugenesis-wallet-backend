@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/tashunc/nugenesis-wallet-backend/services"
+	"github.com/tashunc/nugenesis-wallet-backend/static/staticServices"
 )
 
-func RegisterRoutes(rg *gin.RouterGroup, nonceStore *services.NonceStore) {
+func RegisterRoutes(rg *gin.RouterGroup, nonceStore *staticServices.NonceStore) {
 	protected := rg.Group("/middleware")
-	protected.Use(services.ClientNonceAuthMiddleware(nonceStore))
+	protected.Use(staticServices.ClientNonceAuthMiddleware(nonceStore))
 
 	protected.GET("/data", data)
 	protected.POST("/submit", submit)

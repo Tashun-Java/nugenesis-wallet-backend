@@ -1,12 +1,14 @@
 package moralis
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
+	"github.com/tashunc/nugenesis-wallet-backend/external/data/fmv/thrirdParty/coingecko"
 	"github.com/tashunc/nugenesis-wallet-backend/external/data/historical/thrirdParty/moralis/moralis_models"
 	"github.com/tashunc/nugenesis-wallet-backend/external/models"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 // TokenIDServiceGetter is a function type for getting the token ID service
@@ -51,6 +53,13 @@ func filterBalancesByTokenID(balances []models.WalletTokenBalance) []models.Wall
 		}
 	}
 	return filtered
+}
+
+// enrichBalancesWithCoinGeckoPrices fetches missing prices from CoinGecko
+func enrichBalancesWithCoinGeckoPrices(balances []models.WalletTokenBalance) []models.WalletTokenBalance {
+	// Use the coingecko service to enrich balances
+	service := coingecko.NewService()
+	return service.EnrichBalancesWithPrices(balances)
 }
 
 func (c *Controller) GetWalletHistory(ctx *gin.Context) {
@@ -136,6 +145,9 @@ func (c *Controller) GetWalletTokenBalances(ctx *gin.Context) {
 	// Filter balances by token_id if environment variable is set
 	mappedBalances = filterBalancesByTokenID(mappedBalances)
 
+	// Enrich balances with CoinGecko prices if UsdPrice/UsdValue are missing
+	mappedBalances = enrichBalancesWithCoinGeckoPrices(mappedBalances)
+
 	// Prepare response with pagination info
 	response := models.WalletTokenBalancesResponse{
 		Success:  true,
@@ -204,6 +216,9 @@ func (c *Controller) GetSolanaWalletTokenBalances(ctx *gin.Context) {
 
 	// Filter balances by token_id if environment variable is set
 	mappedBalances = filterBalancesByTokenID(mappedBalances)
+
+	// Enrich balances with CoinGecko prices if UsdPrice/UsdValue are missing
+	mappedBalances = enrichBalancesWithCoinGeckoPrices(mappedBalances)
 
 	// Prepare response
 	response := models.WalletTokenBalancesResponse{
